@@ -1,2 +1,5 @@
+# eclipse
+*.prefs
+
 # python
 *.pyc
