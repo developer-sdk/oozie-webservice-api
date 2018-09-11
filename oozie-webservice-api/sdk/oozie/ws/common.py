@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import urllib, json, urllib2
 import xml.etree.ElementTree as ET
+from urllib2 import HTTPError
 
 PRINT_DEBUG = True
 OOZIE_URL = "http://localhost:11000"
@@ -19,24 +20,6 @@ def check_param_values(param_index, check_list):
         return decorator
     return wrapper
 
-def send_url(request_url):
-    '''send url and get request_get'''
-    
-    if PRINT_DEBUG:
-        print(request_url)
-    
-    response = urllib.urlopen(request_url).read()
-    
-    if PRINT_DEBUG:
-        print(response)
-    
-    json_obj = json.loads(response)
-    
-    if PRINT_DEBUG:
-        print(json.dumps(json_obj, indent=4, sort_keys=True))
-        
-    return json_obj
-
 def param_encode(params):
     return urllib.urlencode(params)
 
@@ -51,25 +34,38 @@ def request(request_url, request_type="GET"):
     '''send url and get request_get'''
     
     if PRINT_DEBUG:
-        print(request_url)
+        print("request: {0}".format(request_url))
     
     opener = urllib2.build_opener(urllib2.HTTPHandler)  
     request_get = urllib2.Request(request_url)
     request_get.get_method = lambda: request_type
-    response = opener.open(request_get)
+    
+    try:
+        response = opener.open(request_get)
+    except HTTPError as hpe:
+        print("-- HTTPError --")
+        print("  error code: {0}".format(hpe.code))
+        print("     message: {0}".format(hpe.msg))
+        error_html = hpe.read()
+        print("  error html: {0}".format(error_html))
+        return 
     
     response_info = response.info()
     response_body = response.read()
     
     if PRINT_DEBUG:
-        print(response_info.getheader("Content-Type"))
+        print("response header: {0}".format(response_info.getheader("Content-Type")))
     
     content_type = response.info().getheader("Content-Type")
     
+    if content_type is None:
+        print("-- process ok --")
+        return 
     if content_type.startswith("application/json"): 
         json_obj = json.loads(response_body)
         
         if PRINT_DEBUG:
+            print("-- response json body --")
             print(json.dumps(json_obj, indent=4, sort_keys=True))
             
         return json_obj
@@ -78,12 +74,20 @@ def request(request_url, request_type="GET"):
         root = ET.fromstring(response_body)
         
         if PRINT_DEBUG:
+            print("-- response xml --")
             ET.dump(root)
         
         return root
     elif content_type.startswith("text/plain"):
+        if PRINT_DEBUG:
+            print("-- response txt --")
+            print(response_body)
+            
         return response_body
     elif content_type.startswith("image/png"):
+        if PRINT_DEBUG:
+            print("-- response image --")
+        
         return response_body
     else:
         raise ValueError("unknown Content-Type")
