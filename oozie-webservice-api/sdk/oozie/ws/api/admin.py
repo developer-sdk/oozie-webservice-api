@@ -1,7 +1,13 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from sdk.oozie.ws import common
 '''
+Admin End-Point
+
+This endpoint is for obtaining Oozie system status and configuration information.
+It supports the following sub-resources: status, os-env, sys-props, configuration, instrumentation, systems, available-timezones .
+
 Created on 2018. 9. 3.
 
 @author: whitebeard-k
@@ -33,37 +39,41 @@ def command(sub_command, command_type = COMMAND_V1):
 
 def status():
     request_url = command(SUB_COMMAND_STATUS)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
     
 def change_system_mode(mode):
     request_url = command(SUB_COMMAND_STATUS)
     request_url = "{url}?systemmode={systemmode}".format(url = request_url, systemmode = mode)
-    return common.send_url(request_url)
+    return common.request_put(request_url)
 
 def os_env():
     request_url = command(SUB_COMMAND_OS_ENV)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
 
 def java_sys_properties():
     request_url = command(SUB_COMMAND_JAVA_SYS_PROPERTIES)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
+
+def configuration():
+    request_url = command(SUB_COMMAND_CONFIGURATION)
+    return common.request_get(request_url)
 
 def build_version():
     request_url = command(SUB_COMMAND_BUILD_VERSION)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
 
 def available_timezones():
     request_url = command(SUB_COMMAND_AVAILABLE_TIMEZONES)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
 
 # v2
 def metrics():
     request_url = command(SUB_COMMAND_METRICS, COMMAND_V2)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
 
 def available_oozie_servers():
     request_url = command(SUB_COMMAND_AVAILABLE_OOZIE_SERVERS, COMMAND_V2)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
 
 def list_sharelib(keywords=""):
     request_url = command(SUB_COMMAND_LIST_SHARELIB, COMMAND_V2)
@@ -72,8 +82,9 @@ def list_sharelib(keywords=""):
         param = { "lib": keywords }
         request_url = "{0}?{1}".format(request_url, common.param_encode(param))
         
-    return common.send_url(request_url)
+    return common.request_get(request_url)
 
 def update_sharelib():
     request_url = command(SUB_COMMAND_UPDATE_SHARELIB, COMMAND_V2)
-    return common.send_url(request_url)
+    return common.request_get(request_url)
+    

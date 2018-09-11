@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from sdk.oozie.ws import common
@@ -40,7 +41,10 @@ def jobs_information(length=50, offset=1, **filters):
     
     return common.request_get(request_url)
 
-def jobs_bulk_modify(action, length=50, offset=1, **filters):    
+def jobs_bulk_modify(action, length=50, offset=1, **filters):
+    '''
+    filters
+    '''
     request_url = command(COMMAND_V1)
     
     action_str = "action={0}".format(action)
@@ -53,3 +57,6 @@ def jobs_bulk_modify(action, length=50, offset=1, **filters):
     request_url = "{0}?{1}&{2}&{3}".format(request_url, action_str, len_offset_str, fliters_str)
     
     return common.request_put(request_url)
+    
+def jobs_bulk_bundle_information():
+    pass
