@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import urllib, json, urllib2
@@ -5,8 +6,8 @@ import xml.etree.ElementTree as ET
 from urllib2 import HTTPError
 
 PRINT_DEBUG = True
-OOZIE_URL = "http://localhost:11000"
-_HTTP_REQUEST_TYPE_ = [ "GET", "PUT" ]
+OOZIE_URL = ""
+_HTTP_REQUEST_TYPE_ = [ "GET", "PUT", "POST" ]
 
 def check_param_values(param_index, check_list):
     ''' param_index로 전달된 데이터가, check_list에 있는 데이터 인지 확인하고 오류를 발생하는 데코레이터  '''
@@ -26,18 +27,21 @@ def param_encode(params):
 def request_get(request_url):
     return request(request_url, "GET")
 
-def request_put(request_url):
-    return request(request_url, "PUT")
+def request_put(request_url, xml=""):
+    return request(request_url, "PUT", xml)
+
+def request_post(request_url, xml):
+    return request(request_url, "POST", xml)
 
 @check_param_values(1, _HTTP_REQUEST_TYPE_)
-def request(request_url, request_type="GET"):
-    '''send url and get request_get'''
+def request(request_url, request_type="GET", xml=""):
+    '''send url and get response'''
     
     if PRINT_DEBUG:
         print("request: {0}".format(request_url))
     
-    opener = urllib2.build_opener(urllib2.HTTPHandler)  
-    request_get = urllib2.Request(request_url)
+    opener = urllib2.build_opener(urllib2.HTTPHandler)
+    request_get = urllib2.Request(request_url, xml, {'Content-Type': 'application/xml'}) if request_type in ("PUT", "POST") else urllib2.Request(request_url) 
     request_get.get_method = lambda: request_type
     
     try:
@@ -91,3 +95,4 @@ def request(request_url, request_type="GET"):
         return response_body
     else:
         raise ValueError("unknown Content-Type")
+    
