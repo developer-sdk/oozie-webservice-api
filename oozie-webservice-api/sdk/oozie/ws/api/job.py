@@ -45,11 +45,60 @@ def job_graph(job_id, file_location="./", showkill="true"):
 def job_status(job_id, **params):
     return _job_show_(job_id, "status", params, COMMAND_V2)
 
-def managing_job(job_id, action="ignore", managing_type="", scope=""):
+def managing_job(job_id, action, xml=""):
+    request_url = command(job_id, COMMAND_V1)
+    request_url = "{0}?action={1}".format(request_url, action)
+    
+    return common.request_put(request_url, xml)
+
+def rerunning_coordinator(coord_id, rerun_type, scope="", start_date_time="", end_date_time="", refresh=False, nocleanup=False):
+    '''
+        action=coord-rerun&type=action&scope=1-2&refresh=false&nocleanup=false
+        action=coord-rerun&type=date2009-02-01T00:10Z::2009-03-01T00:10Z&scope=&refresh=false&nocleanup=false
+    '''
+    request_url = command(coord_id, COMMAND_V1)
+    
+    params = dict()
+    params["action"] = "coord-rerun"
+    
+    if rerun_type == "action":
+        params["type"] = "action"
+        params["scope"] = scope
+    elif rerun_type == "date":
+        params["type"] = "date"
+        params["scope"] = "{0}::{1}".format(start_date_time, end_date_time)
+        
+    params["refresh"] = "true" if refresh else "false"
+    params["nocleanup"] = "true" if refresh else "false"
+    
+    request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    
+    return common.request_put(request_url)
+
+def rerunning_bundle(bundle_id, coord_names="", start_date_time="", end_date_time="", refresh=False, nocleanup=False):
+    ''' /oozie/v1/job/job-3?action=bundle-rerun&coord-scope=coord-1&refresh=false&nocleanup=false '''
+    request_url = command(bundle_id, COMMAND_V1)
+    
+    params = dict()
+    params["action"] = "bundle-rerun"
+    
+    if coord_names:
+        params["coord-scope"] = coord_names
+    elif start_date_time and end_date_time:
+        params["date-scope"] = "{0}::{1}".format(start_date_time, end_date_time)
+        
+    params["refresh"] = "true" if refresh else "false"
+    params["nocleanup"] = "true" if refresh else "false"
+    
+    request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    
+    return common.request_put(request_url)
+
+def managing_job_coordinator(job_id, managing_type="", scope=""):
     request_url = command(job_id, COMMAND_V2)
     
     params = dict()
-    params["action"] = action
+    params["action"] = 'ignore'
     
     if managing_type:
         params["type"] = managing_type
@@ -58,5 +107,33 @@ def managing_job(job_id, action="ignore", managing_type="", scope=""):
         params["scope"] = scope
         
     request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    
+    return common.request_put(request_url)
+
+def change_coord_info(coord_id, concurrency="", endtime="", pausetime=""):
+    '''
+        /oozie/v1/job/job-3?action=change&value=concurrency=100
+        /oozie/v1/job/job-3?action=change&value=endtime=2011-12-01T05:00Z;concurrency=100;pausetime=2011-12-01T05:00Z        
+    '''
+    request_url = command(coord_id, COMMAND_V1)
+    
+    values = ""
+    
+    if concurrency <> "":
+        values = values + "concurrency={0}".format(concurrency)
+    
+    if endtime:
+        if values:
+            values = values + ";"
+            
+        values =  values + "endtime={0}".format(endtime)
+    
+    if pausetime:
+        if values:
+            values = values + ";"
+    
+        values =  values + "pausetime={0}".format(pausetime)
+    
+    request_url = "{0}?action=change&value={1}".format(request_url, values)
     
     return common.request_put(request_url)
