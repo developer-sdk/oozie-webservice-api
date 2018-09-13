@@ -66,6 +66,11 @@ def available_timezones():
     request_url = command(SUB_COMMAND_AVAILABLE_TIMEZONES)
     return common.request_get(request_url)
 
+def queue_dump():
+    request_url = command(SUB_COMMAND_QUEUE_DUMP)
+    return common.request_get(request_url)
+
+
 # v2
 def metrics():
     request_url = command(SUB_COMMAND_METRICS, COMMAND_V2)
@@ -87,4 +92,3 @@ def list_sharelib(keywords=""):
 def update_sharelib():
     request_url = command(SUB_COMMAND_UPDATE_SHARELIB, COMMAND_V2)
     return common.request_get(request_url)
-    
