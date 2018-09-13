@@ -60,3 +60,18 @@ def jobs_bulk_modify(action, length=50, offset=1, **filters):
     
 def jobs_bulk_bundle_information():
     pass
+
+def submit_job(xml, start=False):
+    request_url = command(COMMAND_V1)
+    
+    if start:
+        request_url = request_url + "?action=start"
+    
+    return common.request_post(request_url, xml)
+    
+def submit_proxy_job(xml, job_type):
+    request_url = command(COMMAND_V1)
+    request_url = "{0}?jobtype={1}".format(request_url, job_type)
+    
+    return common.request_post(request_url, xml)
+    
