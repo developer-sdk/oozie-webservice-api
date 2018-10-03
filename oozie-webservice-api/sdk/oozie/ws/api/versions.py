@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sdk.oozie.ws import common
+from sdk.oozie.ws import httplib
 '''
 Created on 2018. 9. 3.
 
@@ -8,5 +8,5 @@ Created on 2018. 9. 3.
 '''
 
 def oozie_versions():
-    request_url = "{oozie_url}/{command}".format(oozie_url = common.OOZIE_URL, command = "oozie/versions")
-    common.request_get(request_url)
+    request_url = "{oozie_url}/{command}".format(oozie_url = httplib.OOZIE_URL, command = "oozie/versions")
+    httplib.request_get(request_url)

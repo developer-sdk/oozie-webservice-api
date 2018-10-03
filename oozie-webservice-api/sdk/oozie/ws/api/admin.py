@@ -1,7 +1,6 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sdk.oozie.ws import common
+from sdk.oozie.ws import httplib
 '''
 Admin End-Point
 
@@ -34,61 +33,61 @@ SUB_COMMAND_UPDATE_SHARELIB = "update_sharelib"
 
 # v1
 def command(sub_command, command_type = COMMAND_V1):
-    request_url = "{oozie_url}/{command}/{sub_command}".format(oozie_url = common.OOZIE_URL, command = command_type, sub_command = sub_command)
+    request_url = "{oozie_url}/{command}/{sub_command}".format(oozie_url = httplib.OOZIE_URL, command = command_type, sub_command = sub_command)
     return request_url
 
 def status():
     request_url = command(SUB_COMMAND_STATUS)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
     
 def change_system_mode(mode):
     request_url = command(SUB_COMMAND_STATUS)
     request_url = "{url}?systemmode={systemmode}".format(url = request_url, systemmode = mode)
-    return common.request_put(request_url)
+    return httplib.request_put(request_url)
 
 def os_env():
     request_url = command(SUB_COMMAND_OS_ENV)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def java_sys_properties():
     request_url = command(SUB_COMMAND_JAVA_SYS_PROPERTIES)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def configuration():
     request_url = command(SUB_COMMAND_CONFIGURATION)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def build_version():
     request_url = command(SUB_COMMAND_BUILD_VERSION)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def available_timezones():
     request_url = command(SUB_COMMAND_AVAILABLE_TIMEZONES)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def queue_dump():
     request_url = command(SUB_COMMAND_QUEUE_DUMP)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 
 # v2
 def metrics():
     request_url = command(SUB_COMMAND_METRICS, COMMAND_V2)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def available_oozie_servers():
     request_url = command(SUB_COMMAND_AVAILABLE_OOZIE_SERVERS, COMMAND_V2)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def list_sharelib(keywords=""):
     request_url = command(SUB_COMMAND_LIST_SHARELIB, COMMAND_V2)
     
     if keywords:
         param = { "lib": keywords }
-        request_url = "{0}?{1}".format(request_url, common.param_encode(param))
+        request_url = "{0}?{1}".format(request_url, httplib.param_encode(param))
         
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def update_sharelib():
     request_url = command(SUB_COMMAND_UPDATE_SHARELIB, COMMAND_V2)
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)

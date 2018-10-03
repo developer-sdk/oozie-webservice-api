@@ -20,29 +20,29 @@ def command(job_id, command_type):
     return request_url
 
 def _job_show_(job_id, show, params, command_type=COMMAND_V1):
-    request_url = command(job_id, command_type)
+    request_ur command(job_id, command_type)
     
     params["show"] = show
     request_url = "{0}?{1}".format(request_url, common.param_encode(params))
     
     return common.request_get(request_url)
 
-def job_log(job_id, **params):
-    return _job_show_(job_id, "log", params)
+def job_log(job_id, params):
+    return _job_show_(job_id, params["show"] if "show" in params else "log", params, command_type=COMMAND_V2)
 
-def job_info(job_id, **params):
-    return _job_show_(job_id, "info", params)
+def job_info(job_id, params={}):
+    return _job_show_(job_id, params["show"] if "show" in params else "info", params)
 
 def job_graph(job_id, file_location="./", showkill="true"):
     response_body = _job_show_(job_id, "graph", { "show_kill": showkill })
-    file_location = file_location + job_id + ".png"
+    file_location = file_location + job_id g"
     
     with open(file_location,"wb") as output:
             output.write(response_body) 
             output.close()
 
 # v2
-def job_status(job_id, **params):
+def job_status(job_id, params):
     return _job_show_(job_id, "status", params, COMMAND_V2)
 
 def managing_job(job_id, action, xml=""):
@@ -63,10 +63,9 @@ def rerunning_coordinator(coord_id, rerun_type, scope="", start_date_time="", en
     
     if rerun_type == "action":
         params["type"] = "action"
-        params["scope"] = scope
-    elif rerun_type == "date":
+        params["scope"]    elif rerun_type == "date":
         params["type"] = "date"
-        params["scope"] = "{0}::{1}".format(start_date_time, end_date_time)
+ = "{0}::{1}".format(start_date_time, end_date_time)
         
     params["refresh"] = "true" if refresh else "false"
     params["nocleanup"] = "true" if refresh else "false"
@@ -137,3 +136,10 @@ def change_coord_info(coord_id, concurrency="", endtime="", pausetime=""):
     request_url = "{0}?action=change&value={1}".format(request_url, values)
     
     return common.request_put(request_url)
+
+def update_coordinator(coord_id, xml):
+    ''' oozie/v2/job/0000000-140414102048137-oozie-puru-C?action=update '''
+    request_url = command(coord_id, COMMAND_V2)
+    request_url = "{0}?action=update".format(request_url)
+    
+    return common.request_put(request_url, xml=xml)

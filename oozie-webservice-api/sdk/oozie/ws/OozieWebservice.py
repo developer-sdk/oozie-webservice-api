@@ -11,12 +11,12 @@ https://oozie.apache.org/docs/4.2.0/WebServicesAPI.html
 
 @author: whitebeard-k
 '''
-from sdk.oozie.ws import common
+from sdk.oozie.ws import httplib
 from sdk.oozie.ws.api import versions
 from sdk.oozie.ws.api import admin
 from sdk.oozie.ws.api import jobs
 from sdk.oozie.ws.api import job
-from sdk.oozie.ws.common import check_param_values
+from sdk.oozie.ws.httplib import check_param_values
 
 class OozieWebservice(object):
     '''
@@ -33,7 +33,7 @@ class OozieWebservice(object):
           oozie_port: oozie server port
         '''
         
-        common.OOZIE_URL = "http://{0}:{1}".format(oozie_ip, oozie_port)
+        httplib.OOZIE_URL = "http://{0}:{1}".format(oozie_ip, oozie_port)
     
     def versions(self):
         ''' 
@@ -181,5 +181,140 @@ class OozieWebservice(object):
         '''
         return job.change_coord_info(coord_id, concurrency, endtime, pausetime)
         
-    #def job_info(self, job_info):
-    #    return job.job_info(job_id)
+    def update_coordinator(self, coord_id, xml):
+        ''' Existing coordinator definition and properties will be replaced by new definition and properties. Refer Updating coordinator definition and properties '''
+        return job.update_coordinator(coord_id, xml)
+    
+    def job_info(self, job_id, **params):
+        '''
+            request retrieves the job information. wf, coord, bundle information
+            params
+                show: info, allruns
+                offset
+                len
+                filter
+                order
+        '''
+        return job.job_info(job_id, params)
+    
+    def job_log(self, job_id, **params):
+        
+        return job.job_log(job_id, params)
+    
+    def job_graph(self, job_id, file_location="./", showkill="true"):
+        return job.job_graph(job_id, file_location, showkill)
+    
+    def job_status(self, job_id, **params):
+        return job.job_status(job_id, params)
+    
+    def jobs_information(self, jobtype="", length=1000, offset=1, **filters):
+        ''' 
+            request retrieves workflow and coordinator jobs information. 
+            
+            name: the application name from the workflow/coordinator/bundle definition
+            user: the user that submitted the job
+            group: the group for the job
+            status: the status of the job
+            startCreatedTime : the start of the window about workflow job's created time
+            endCreatedTime : the end of above window
+
+            The query will do an AND among all the filter names.
+
+            The query will do an OR among all the filter values for the same name. 
+                Multiple values must be specified as different name value pairs.
+            
+            Additionally the offset and len parameters can be used for pagination. 
+                The start parameter is base 1.
+            
+            Moreover, the jobtype parameter could be used to determine what type of job is looking for. 
+                The valid values of job type are: wf , coordinator or bundle .
+        '''
+        return jobs.jobs_information(jobtype, length, offset, filters)
+    
+    def jobs_bulk_modify(self, action, jobtype="", length=50, offset=1, **filters):
+        ''' 
+            request can kill, suspend, or resume all jobs that satisfy the url encoded parameters.
+            
+            PUT /oozie/v1/jobs?action=kill&filter=name%3Dcron-coord&offset=1&len=50&jobtype=coordinator
+
+            This request will kill all the coordinators with name=cron-coord up to 50 of them.
+            
+            Note that the filter is URL encoded, its decoded value is name=cron-coord . The syntax for the filter is
+            
+            [NAME=VALUE][;NAME=VALUE]*
+            
+            Valid filter names are:
+            
+                name: the application name from the workflow/coordinator/bundle definition
+                user: the user that submitted the job
+                group: the group for the job
+                status: the status of the job
+            
+            The query will do an AND among all the filter names.
+            
+            The query will do an OR among all the filter values for the same name. 
+                Multiple values must be specified as different name value pairs.
+            
+            Additionally the offset and len parameters can be used for pagination. 
+                The start parameter is base 1.
+            
+            Moreover, the jobtype parameter could be used to determine what type of job is looking for. 
+                The valid values of job type are: wf , coordinator or bundle 
+        '''
+        return jobs.jobs_bulk_modify(action, jobtype, length, offset, filters)
+    
+    def jobs_bulk_bundle_information(self, bulk_name, coordi_names=[], action_status="", startCreatedTime="", endCreatedTime="", startScheduledTime="", endScheduledTime="", length=50, offset=1):
+        '''
+            A HTTP GET request retrieves a bulk response for all actions, corresponding to a particular bundle, 
+            that satisfy user specified criteria. This is useful for monitoring purposes, where user can find out about the status of downstream jobs with a single bulk request. 
+            The criteria are used for filtering the actions returned. Valid options (_case insensitive_) for these request criteria are:
+            
+                bundle : the application name from the bundle definition
+                coordinators : the application name(s) from the coordinator definition.
+                actionStatus : the status of coordinator action (Valid values are WAITING, READY, SUBMITTED, RUNNING, SUSPENDED, TIMEDOUT, SUCCEEDED, KILLED, FAILED)
+                startCreatedTime : the start of the window you want to look at, of the actions' created time
+                endCreatedTime : the end of above window
+                startScheduledTime : the start of the window you want to look at, of the actions' scheduled i.e. nominal time.
+                endScheduledTime : the end of above window
+            
+            Specifying 'bundle' is REQUIRED. All the rest are OPTIONAL but that might result in thousands of results depending on the size of your job. (pagination comes into play then)
+            
+            If no 'actionStatus' values provided, by default KILLED,FAILED will be used. 
+                For e.g if the query string is only "bundle=MyBundle", the response will have all actions (across all coordinators) whose status is KILLED or FAILED
+            
+            The query will do an AND among all the filter names, and OR among each filter name's values.
+            
+            The syntax for the request criteria is
+            
+            [NAME=VALUE][;NAME=VALUE]*
+            
+            For 'coordinators' and 'actionStatus', if user wants to check for multiple values, 
+                they can be passed in a comma-separated manner. *Note*: The query will do an OR among them. Hence no need to repeat the criteria name
+            
+            All the time values should be specified in ISO8601 (UTC) format i.e. yyyy-MM-dd'T'HH:mm'Z'
+            
+            Additionally the offset and len parameters can be used as usual for pagination. The start parameter is base 1.
+            
+            If you specify a coordinator in the list, that does not exist, no error is thrown; 
+                simply the response will be empty or pertaining to the other valid coordinators. 
+            However, if bundle name provided does not exist, an error is thrown.
+        '''
+        return jobs.jobs_bulk_bundle_information(bulk_name, coordi_names, action_status, startCreatedTime, endCreatedTime, startScheduledTime, endScheduledTime, length, offset)
+    
+    def managing_job_coordinator(self, job_id, managing_type="", scope=""):
+        '''
+            A ignore request is done with an HTTP PUT request with a ignore
+            
+            The type parameter supports action only. 
+                The scope parameter can contain coordinator action id(s) to be ignored. 
+                Multiple action ids can be passed to the scope parameter
+            
+            Request:
+            
+            Ignore a coordinator job
+                PUT /oozie/v2/job/job-3?action=ignore
+            
+            Ignore coordinator actions            
+                PUT /oozie/v2/job/job-3?action=ignore&type=action&scope=3-4
+        '''
+        return job.managing_job_coordinator(job_id, managing_type, scope)

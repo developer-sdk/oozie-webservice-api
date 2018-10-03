@@ -1,25 +1,13 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import urllib, json, urllib2
 import xml.etree.ElementTree as ET
 from urllib2 import HTTPError
+from sdk.oozie.ws.util.decorator import check_param_name_values
 
 PRINT_DEBUG = True
 OOZIE_URL = ""
 _HTTP_REQUEST_TYPE_ = [ "GET", "PUT", "POST" ]
-
-def check_param_values(param_index, check_list):
-    ''' param_index로 전달된 데이터가, check_list에 있는 데이터 인지 확인하고 오류를 발생하는 데코레이터  '''
-    
-    def wrapper(func):
-        def decorator(*args, **kwargs):
-            if args[param_index] not in check_list:
-                raise ValueError("args error {0} not in [{1}]".format(args[param_index], ",".join(check_list)))
-            
-            return func(*args, **kwargs)
-        return decorator
-    return wrapper
 
 def param_encode(params):
     return urllib.urlencode(params)
@@ -33,7 +21,7 @@ def request_put(request_url, xml=""):
 def request_post(request_url, xml):
     return request(request_url, "POST", xml)
 
-@check_param_values(1, _HTTP_REQUEST_TYPE_)
+@check_param_name_values("request_type", _HTTP_REQUEST_TYPE_)
 def request(request_url, request_type="GET", xml=""):
     '''send url and get response'''
     
