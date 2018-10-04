@@ -1,7 +1,6 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sdk.oozie.ws import common
+from sdk.oozie.ws import httplib
 '''
 Created on 2018. 9. 4.
 
@@ -16,16 +15,16 @@ SUB_COMMAND_STATUS = "status"
 
 # v1
 def command(job_id, command_type):
-    request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url = common.OOZIE_URL, command = command_type, job_id = job_id)
+    request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url = httplib.OOZIE_URL, command = command_type, job_id = job_id)
     return request_url
 
 def _job_show_(job_id, show, params, command_type=COMMAND_V1):
-    request_ur command(job_id, command_type)
+    request_url = command(job_id, command_type)
     
     params["show"] = show
-    request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    request_url = "{0}?{1}".format(request_url, httplib.param_encode(params))
     
-    return common.request_get(request_url)
+    return httplib.request_get(request_url)
 
 def job_log(job_id, params):
     return _job_show_(job_id, params["show"] if "show" in params else "log", params, command_type=COMMAND_V2)
@@ -33,9 +32,12 @@ def job_log(job_id, params):
 def job_info(job_id, params={}):
     return _job_show_(job_id, params["show"] if "show" in params else "info", params)
 
+
+
+
 def job_graph(job_id, file_location="./", showkill="true"):
     response_body = _job_show_(job_id, "graph", { "show_kill": showkill })
-    file_location = file_location + job_id g"
+    file_location = file_location + job_id + ".png"
     
     with open(file_location,"wb") as output:
             output.write(response_body) 
@@ -49,7 +51,7 @@ def managing_job(job_id, action, xml=""):
     request_url = command(job_id, COMMAND_V1)
     request_url = "{0}?action={1}".format(request_url, action)
     
-    return common.request_put(request_url, xml)
+    return httplib.request_put(request_url, xml)
 
 def rerunning_coordinator(coord_id, rerun_type, scope="", start_date_time="", end_date_time="", refresh=False, nocleanup=False):
     '''
@@ -63,16 +65,17 @@ def rerunning_coordinator(coord_id, rerun_type, scope="", start_date_time="", en
     
     if rerun_type == "action":
         params["type"] = "action"
-        params["scope"]    elif rerun_type == "date":
+        params["scope"] = scope
+    elif rerun_type == "date":
         params["type"] = "date"
- = "{0}::{1}".format(start_date_time, end_date_time)
+        params["scope"] = "{0}::{1}".format(start_date_time, end_date_time)
         
     params["refresh"] = "true" if refresh else "false"
     params["nocleanup"] = "true" if refresh else "false"
     
-    request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    request_url = "{0}?{1}".format(request_url, httplib.param_encode(params))
     
-    return common.request_put(request_url)
+    return httplib.request_put(request_url)
 
 def rerunning_bundle(bundle_id, coord_names="", start_date_time="", end_date_time="", refresh=False, nocleanup=False):
     ''' /oozie/v1/job/job-3?action=bundle-rerun&coord-scope=coord-1&refresh=false&nocleanup=false '''
@@ -89,9 +92,9 @@ def rerunning_bundle(bundle_id, coord_names="", start_date_time="", end_date_tim
     params["refresh"] = "true" if refresh else "false"
     params["nocleanup"] = "true" if refresh else "false"
     
-    request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    request_url = "{0}?{1}".format(request_url, httplib.param_encode(params))
     
-    return common.request_put(request_url)
+    return httplib.request_put(request_url)
 
 def managing_job_coordinator(job_id, managing_type="", scope=""):
     request_url = command(job_id, COMMAND_V2)
@@ -105,9 +108,9 @@ def managing_job_coordinator(job_id, managing_type="", scope=""):
     if scope:
         params["scope"] = scope
         
-    request_url = "{0}?{1}".format(request_url, common.param_encode(params))
+    request_url = "{0}?{1}".format(request_url, httplib.param_encode(params))
     
-    return common.request_put(request_url)
+    return httplib.request_put(request_url)
 
 def change_coord_info(coord_id, concurrency="", endtime="", pausetime=""):
     '''
@@ -135,11 +138,14 @@ def change_coord_info(coord_id, concurrency="", endtime="", pausetime=""):
     
     request_url = "{0}?action=change&value={1}".format(request_url, values)
     
-    return common.request_put(request_url)
+    return httplib.request_put(request_url)
 
 def update_coordinator(coord_id, xml):
     ''' oozie/v2/job/0000000-140414102048137-oozie-puru-C?action=update '''
     request_url = command(coord_id, COMMAND_V2)
     request_url = "{0}?action=update".format(request_url)
     
-    return common.request_put(request_url, xml=xml)
+    return httplib.request_put(request_url, xml=xml)
+
+def change_sla(job_id):
+    pass

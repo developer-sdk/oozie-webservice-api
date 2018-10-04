@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
@@ -16,7 +15,7 @@ from sdk.oozie.ws.api import versions
 from sdk.oozie.ws.api import admin
 from sdk.oozie.ws.api import jobs
 from sdk.oozie.ws.api import job
-from sdk.oozie.ws.httplib import check_param_values
+from sdk.oozie.ws.util.decorator import check_param_index_values
 
 class OozieWebservice(object):
     '''
@@ -47,7 +46,7 @@ class OozieWebservice(object):
         ''' A HTTP GET request returns the system status. '''
         return admin.status()
 
-    @check_param_values(1, _OOZIE_SYSTEM_MODE_)
+    @check_param_index_values(1, _OOZIE_SYSTEM_MODE_)
     def change_system_mode(self, system_mode):
         ''' change the system status between NORMAL , NOWEBSERVICE , and SAFEMODE . '''
         return admin.change_system_mode(system_mode)
@@ -113,7 +112,7 @@ class OozieWebservice(object):
         '''
         return jobs.submit_job(xml, start)
     
-    @check_param_values(1, _PROXY_JOB_TYPE_)
+    @check_param_index_values(1, _PROXY_JOB_TYPE_)
     def submit_proxy_job(self, jobtype, xml):
         '''
             You can submit a Workflow that contains a single Hive, Pig, MapReduce, Sqoop action without writing a workflow.xml. 
@@ -121,7 +120,7 @@ class OozieWebservice(object):
         '''
         return jobs.submit_proxy_job(xml, jobtype)
     
-    @check_param_values(2, _MANAGING_JOB_ACTION_)    
+    @check_param_index_values(2, _MANAGING_JOB_ACTION_)    
     def managing_job(self, job_id, action, xml=""):
         ''' 
             request starts, suspends, resumes, kills, update or dryruns a job.
