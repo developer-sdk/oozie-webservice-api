@@ -3,3 +3,8 @@
 
 # python
 *.pyc
+
+# build
+build/
+dist/
+oozie_webservice_api.egg-info/
