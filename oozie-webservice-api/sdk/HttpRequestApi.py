@@ -6,7 +6,7 @@ from urllib2 import HTTPError
 '''
 Created on Feb 11, 2019
 
-@author: seo
+@author: whitebeard-k
 '''
 
 class HttpRequest(object):
@@ -14,11 +14,11 @@ class HttpRequest(object):
     classdocs
     '''
 
-    def __init__(self, params):
+    def __init__(self):
         '''
         Constructor
         '''
-        self.logger = logging.getLogger("{0}.{1}".format(self.__class__.qualname__))
+        self.logger = logging.getLogger("{0}".format(self.__class__))
         
     def debug(self, message):
         self.logger.debug(message)
@@ -47,11 +47,7 @@ class HttpRequest(object):
         try:
             response = opener.open(request_get)
         except HTTPError as hpe:
-            print("-- HTTPError --")
-            print("  error code: {0}".format(hpe.code))
-            print("     message: {0}".format(hpe.msg))
-            error_html = hpe.read()
-            print("  error html: {0}".format(error_html))
+            self.logger.exception(hpe)
             return 
         
         response_info = response.info()
@@ -78,14 +74,17 @@ class HttpRequest(object):
             ET.dump(root)
             
             return root
+        
         elif content_type.startswith("text/plain"):
             self.debug("-- response txt --")
             print(response_body)
                 
             return response_body
+        
         elif content_type.startswith("image/png"):
             self.debug("-- response image --")
             
             return response_body
+        
         else:
             raise ValueError("unknown Content-Type")
