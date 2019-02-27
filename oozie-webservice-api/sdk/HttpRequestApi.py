@@ -26,7 +26,10 @@ class HttpRequest(object):
     def param_encode(self, params):
         return urllib.urlencode(params)
     
-    def request_get(self, request_url):
+    def request_get(self, request_url, params=None):
+        if params:
+            return self.request('{0}?{1}'.format(request_url, self.param_encode(params), "GET"))
+        
         return self.request(request_url, "GET")
     
     def request_put(self, request_url, xml=""):
