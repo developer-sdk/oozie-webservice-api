@@ -21,16 +21,21 @@ class OozieHttpApi(HttpRequest):
         self.COMMAND_V1 = self.COMMAND_V1 + command_type
         self.COMMAND_V2 = self.COMMAND_V2 + command_type
     
-    def command(self, command_version, sub_command):
+    def command_string(self, command_version, sub_command):
         request_command = "{oozie_url}/{command}/{sub_command}".format(oozie_url=self.OOZIE_URL, command=command_version, sub_command=sub_command)
         return request_command
 
     def command_v1(self, sub_command):
-        return self.command(self.COMMAND_V1, sub_command)
+        return self.command_string(self.COMMAND_V1, sub_command)
     
     def command_v2(self, sub_command):
-        return self.command(self.COMMAND_V2, sub_command)
-
+        return self.command_string(self.COMMAND_V2, sub_command)
+    
+    def request_oozie_command_v1(self, command, param=None):
+        return self.request_get(self.command_v1(command), param)
+    
+    def request_oozie_command_v2(self, command, param=None):
+        return self.request_get(self.command_v2(command), param)
             
 class Admin(OozieHttpApi):
 
@@ -54,45 +59,51 @@ class Admin(OozieHttpApi):
         super(Admin, self).__init__('admin')
 
     def status(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_STATUS))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_STATUS)
         
     def change_system_mode(self, systemmode):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_STATUS, {'systemmode':systemmode}))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_STATUS, {'systemmode':systemmode})
     
     def os_env(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_OS_ENV))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_OS_ENV)
     
     def java_sys_properties(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_JAVA_SYS_PROPERTIES))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_JAVA_SYS_PROPERTIES)
         
     def configuration(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_CONFIGURATION))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_CONFIGURATION)
     
     def build_version(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_BUILD_VERSION))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_BUILD_VERSION)
     
     def available_timezones(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_AVAILABLE_TIMEZONES))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_AVAILABLE_TIMEZONES)
         
     def queue_dump(self):
-        return self.request_get(self.command_v1(self.SUB_COMMAND_QUEUE_DUMP))
+        return self.request_oozie_command_v1(self.SUB_COMMAND_QUEUE_DUMP)
     
     # v2
     def metrics(self):
-        return self.request_get(self.command_v2(self.SUB_COMMAND_METRICS))
+        return self.request_oozie_command_v2(self.SUB_COMMAND_METRICS)
     
     def available_oozie_servers(self):
-        return self.request_get(self.command_v2(self.SUB_COMMAND_AVAILABLE_OOZIE_SERVERS))
+        return self.request_oozie_command_v2(self.SUB_COMMAND_AVAILABLE_OOZIE_SERVERS)
     
     def list_sharelib(self, keywords=None):
-        request_url = self.command_v2(self.SUB_COMMAND_LIST_SHARELIB)
-        
         if keywords:
-            param = { "lib": keywords }
-            request_url = "{0}?{1}".format(request_url, self.param_encode(param))
+            params = {'lib': keywords}
             
-        return self.request_get(request_url)
-    
+        return self.request_oozie_command_v2(self.SUB_COMMAND_LIST_SHARELIB, params)
+        
     def update_sharelib(self):
-        return self.request_get(self.command_v2(self.SUB_COMMAND_UPDATE_SHARELIB))
+        return self.request_oozie_command_v2(self.SUB_COMMAND_UPDATE_SHARELIB)
     
+class Version(OozieHttpApi):
+    
+    SUB_COMMAND_VERSION = "oozie/versions"
+    
+    def __init__(self):
+        super(Admin, self).__init__('version')
+
+    def oozie_versions(self):
+        return self.request_oozie_command_v1(self.SUB_COMMAND_VERSION)
