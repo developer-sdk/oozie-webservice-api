@@ -107,3 +107,9 @@ class Version(OozieHttpApi):
 
     def oozie_versions(self):
         return self.request_oozie_command_v1(self.SUB_COMMAND_VERSION)
+    
+class Job(OozieHttpApi):
+    pass
+
+class Jobs(OozieHttpApi):
+    pass
