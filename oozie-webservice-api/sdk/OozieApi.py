@@ -109,7 +109,32 @@ class Version(OozieHttpApi):
         return self.request_oozie_command_v1(self.SUB_COMMAND_VERSION)
     
 class Job(OozieHttpApi):
-    pass
+    # v1
+    SUB_COMMAND_STATUS = "status"
+    
+    def __init__(self):
+        self.COMMAND_V1 = "oozie/v1/job"
+        self.COMMAND_V2 = "oozie/v2/job"
+
+    def _request_url_(self, job_id, command_type):
+        request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url = self.OOZIE_URL, command = command_type, job_id = job_id)
+        return request_url
+    
+    def _job_show_(self, command_type, job_id, show, params):
+        request_url = self._request_url_(job_id, command_type)
+        
+        params["show"] = show
+        request_url = "{0}?{1}".format(request_url, self.param_encode(params))
+        
+        return self.request_oozie_command_v1(request_url, params)
+    
+    def job_log(self, job_id, params=None):
+        return self._job_show_(self.COMMAND_V2, job_id, params["show"] if "show" in params else "log", params)
+
+    def job_info(self, job_id, params=None):
+        return self._job_show_(self.COMMAND_V2, job_id, params["show"] if "show" in params else "info", params)
+
+
 
 class Jobs(OozieHttpApi):
     pass
