@@ -55,8 +55,8 @@ class Admin(OozieHttpApi):
     SUB_COMMAND_LIST_SHARELIB = "list_sharelib"
     SUB_COMMAND_UPDATE_SHARELIB = "update_sharelib"
     
-    def __init__(self):
-        super(Admin, self).__init__('admin')
+    def __init__(self, oozie_url):
+        super(Admin, self).__init__(oozie_url, 'admin')
 
     def status(self):
         return self.request_oozie_command_v1(self.SUB_COMMAND_STATUS)
@@ -102,8 +102,8 @@ class Version(OozieHttpApi):
     
     SUB_COMMAND_VERSION = "oozie/versions"
     
-    def __init__(self):
-        super(Admin, self).__init__('version')
+    def __init__(self, oozie_url):
+        super(Admin, self).__init__(oozie_url, 'version')
 
     def oozie_versions(self):
         return self.request_oozie_command_v1(self.SUB_COMMAND_VERSION)
@@ -112,9 +112,12 @@ class Job(OozieHttpApi):
     # v1
     SUB_COMMAND_STATUS = "status"
     
-    def __init__(self):
+    def __init__(self, oozie_url):
+        super(Admin, self).__init__(oozie_url, 'job')
+        
         self.COMMAND_V1 = "oozie/v1/job"
         self.COMMAND_V2 = "oozie/v2/job"
+        
 
     def _request_url_(self, job_id, command_type):
         request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url = self.OOZIE_URL, command = command_type, job_id = job_id)
