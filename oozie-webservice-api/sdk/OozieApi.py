@@ -131,11 +131,16 @@ class Job(OozieHttpApi):
         
         return self.request_oozie_command_v1(request_url, params)
     
+    
+    def job_info(self, job_id, params=None):
+        return self._job_show_(self.COMMAND_V1, job_id, params["show"] if "show" in params else "info", params)
+
+    # v2
+    def job_status(self, job_id, params):
+        return self._job_show_(self.COMMAND_V2, job_id, "status", params)
+
     def job_log(self, job_id, params=None):
         return self._job_show_(self.COMMAND_V2, job_id, params["show"] if "show" in params else "log", params)
-
-    def job_info(self, job_id, params=None):
-        return self._job_show_(self.COMMAND_V2, job_id, params["show"] if "show" in params else "info", params)
 
 
 
