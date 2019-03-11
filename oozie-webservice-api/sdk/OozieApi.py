@@ -7,8 +7,20 @@ Created on Feb 25, 2019
 '''
 from sdk.HttpRequestApi import HttpRequest
 
+class OozieWebService(object):
+    '''
+        Oozie 웹서비스 호출 클래스 
+    '''
+    
+    def __init__(self, oozie_url):
+        self._OOZIE_URL = oozie_url
+        
+        self.admin = Admin(oozie_url)
 
 class OozieHttpApi(HttpRequest):
+    '''
+        Oozie Http Webservice 호출을 위한 슈퍼 클래스 
+    '''
 
     OOZIE_URL = "http://"
     COMMAND_V1 = "oozie/v1/"
@@ -21,23 +33,29 @@ class OozieHttpApi(HttpRequest):
         self.COMMAND_V1 = self.COMMAND_V1 + command_type
         self.COMMAND_V2 = self.COMMAND_V2 + command_type
     
-    def command_string(self, command_version, sub_command):
-        request_command = "{oozie_url}/{command}/{sub_command}".format(oozie_url=self.OOZIE_URL, command=command_version, sub_command=sub_command)
-        return request_command
+    def _command_string_(self, command_version, sub_command):
+        return "{oozie_url}/{command}/{sub_command}".format(oozie_url=self.OOZIE_URL, command=command_version, sub_command=sub_command)
 
-    def command_v1(self, sub_command):
-        return self.command_string(self.COMMAND_V1, sub_command)
+    # make v1 command string
+    def _get_command_string_v1(self, sub_command):
+        return self._command_string_(self.COMMAND_V1, sub_command)
     
-    def command_v2(self, sub_command):
-        return self.command_string(self.COMMAND_V2, sub_command)
+    # make v2 command string
+    def _get_command_string_v2(self, sub_command):
+        return self._command_string_(self.COMMAND_V2, sub_command)
     
+    # request v1 oozie service
     def request_oozie_command_v1(self, command, param=None):
-        return self.request_get(self.command_v1(command), param)
+        return self.request_get(self._get_command_string_v1(command), param)
     
+    # request v2 oozie service
     def request_oozie_command_v2(self, command, param=None):
-        return self.request_get(self.command_v2(command), param)
+        return self.request_get(self._get_command_string_v2(command), param)
             
 class Admin(OozieHttpApi):
+    '''
+        Oozie Webservice의 Admin API 호출 
+    '''
 
     # v1
     SUB_COMMAND_STATUS = "status"
@@ -120,7 +138,7 @@ class Job(OozieHttpApi):
         
 
     def _request_url_(self, job_id, command_type):
-        request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url = self.OOZIE_URL, command = command_type, job_id = job_id)
+        request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url=self.OOZIE_URL, command=command_type, job_id=job_id)
         return request_url
     
     def _job_show_(self, command_type, job_id, show, params):
@@ -141,8 +159,6 @@ class Job(OozieHttpApi):
 
     def job_log(self, job_id, params=None):
         return self._job_show_(self.COMMAND_V2, job_id, params["show"] if "show" in params else "log", params)
-
-
 
 class Jobs(OozieHttpApi):
     pass

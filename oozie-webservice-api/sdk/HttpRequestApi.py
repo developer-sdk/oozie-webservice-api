@@ -10,14 +10,12 @@ Created on Feb 11, 2019
 '''
 
 class HttpRequest(object):
-    '''
-    classdocs
-    '''
 
     def __init__(self):
         '''
         Constructor
         '''
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(relativeCreated)6d %(threadName)s %(message)s')
         self.logger = logging.getLogger("{0}".format(self.__class__))
         
     def debug(self, message):
@@ -38,7 +36,7 @@ class HttpRequest(object):
     def request_post(self, request_url, xml):
         return self.request(request_url, "POST", xml)
     
-    def request(self, request_url, request_type="GET", xml=""):
+    def request(self, request_url, request_type="GET", xml=None):
         '''send url and get response'''
         
         self.debug("request: {0}".format(request_url))
@@ -50,7 +48,11 @@ class HttpRequest(object):
         try:
             response = opener.open(request_get)
         except HTTPError as hpe:
-            self.logger.exception(hpe)
+            print("-- HTTPError --")
+            print("  error code: {0}".format(hpe.code))
+            print("     message: {0}".format(hpe.msg))
+            error_html = hpe.read()
+            print("  error html: {0}".format(error_html))
             return 
         
         response_info = response.info()
