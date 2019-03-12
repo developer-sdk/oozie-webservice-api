@@ -1,13 +1,32 @@
-'''
-Created on Feb 26, 2019
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from sdk import OozieApi
 
-@author: seo
-'''
-from sdk.OozieApi import OozieWebService
+ows = OozieApi.OozieWebService("http://127.0.0.1:11000")
 
-def main():
-    ows = OozieWebService('http://127.0.0.1:8080')
-    ows.admin.build_version()
+#########################
+# admin
+#########################
+# v1
+#ows.admin.build_version()
+#ows.admin.status()
+#ows.admin.change_system_mode('NORMAL')
+#ows.admin.os_env()
+#ows.admin.java_sys_properties()
+#ows.admin.configuration()
+#ows.admin.build_version()
+#ows.admin.available_timezones()
+#ows.admin.queue_dump()
 
-if __name__ == '__main__':
-    main()
+#v2
+#ows.admin.metrics()
+#ows.admin.available_oozie_servers()
+#ows.admin.list_sharelib()
+#ows.admin.list_sharelib('pig')
+#ows.admin.update_sharelib()
+
+
+#########################
+# version
+#########################
+ows.version.oozie_versions()

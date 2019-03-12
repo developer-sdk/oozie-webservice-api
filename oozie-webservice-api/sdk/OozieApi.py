@@ -6,6 +6,7 @@ Created on Feb 25, 2019
 @author: whitebeard-k
 '''
 from sdk.HttpRequestApi import HttpRequest
+from _ctypes import ArgumentError
 
 class OozieWebService(object):
     '''
@@ -16,41 +17,57 @@ class OozieWebService(object):
         self._OOZIE_URL = oozie_url
         
         self.admin = Admin(oozie_url)
+        self.version = Version(oozie_url)
 
 class OozieHttpApi(HttpRequest):
     '''
         Oozie Http Webservice 호출을 위한 슈퍼 클래스 
+        
+        command_type: admin, versions, job, jobs
     '''
 
-    OOZIE_URL = "http://"
-    COMMAND_V1 = "oozie/v1/"
-    COMMAND_V2 = "oozie/v2/"
+    _OOZIE_URL = "http://"
+    _COMMAND_V1 = "oozie/v1/"
+    _COMMAND_V2 = "oozie/v2/"
 
     def __init__(self, oozie_url, command_type):
         super(OozieHttpApi, self).__init__()
         
-        self.OOZIE_URL = oozie_url
-        self.COMMAND_V1 = self.COMMAND_V1 + command_type
-        self.COMMAND_V2 = self.COMMAND_V2 + command_type
+        self._OOZIE_URL = oozie_url
+        self._COMMAND_V1 = self._COMMAND_V1 + command_type
+        self._COMMAND_V2 = self._COMMAND_V2 + command_type
     
-    def _command_string_(self, command_version, sub_command):
-        return "{oozie_url}/{command}/{sub_command}".format(oozie_url=self.OOZIE_URL, command=command_version, sub_command=sub_command)
-
+    def _mk_command_url(self, version, command, params=None):
+        param_string = ''
+        
+        if params:
+            param_string = '?' + self.param_encode(params)
+            
+        return "{oozie_url}/{version}/{command}{params}".format(oozie_url=self._OOZIE_URL, version=version, command=command, params=param_string) 
+        
     # make v1 command string
-    def _get_command_string_v1(self, sub_command):
-        return self._command_string_(self.COMMAND_V1, sub_command)
-    
-    # make v2 command string
-    def _get_command_string_v2(self, sub_command):
-        return self._command_string_(self.COMMAND_V2, sub_command)
+    def _mk_url(self, version, command, params=None):
+        return self._mk_command_url(version, command, params)
     
     # request v1 oozie service
-    def request_oozie_command_v1(self, command, param=None):
-        return self.request_get(self._get_command_string_v1(command), param)
+    def get_request_v1(self, command, param=None):
+        url = self._mk_url(self._COMMAND_V1, command)
+        return self.request_get(url, param)
     
     # request v2 oozie service
-    def request_oozie_command_v2(self, command, param=None):
-        return self.request_get(self._get_command_string_v2(command), param)
+    def get_request_v2(self, command, param=None):
+        url = self._mk_url(self._COMMAND_V2, command)
+        return self.request_get(url, param)
+    
+    # request v1 oozie service
+    def put_request_v1(self, command, param=None):
+        url = self._mk_url(self._COMMAND_V1, command)
+        return self.request_put(url, param)
+    
+    # request v2 oozie service
+    def put_request_v2(self, command, param=None):
+        url = self._mk_url(self._COMMAND_V2, command)
+        return self.request_put(url, param)
             
 class Admin(OozieHttpApi):
     '''
@@ -58,87 +75,94 @@ class Admin(OozieHttpApi):
     '''
 
     # v1
-    SUB_COMMAND_STATUS = "status"
-    SUB_COMMAND_BUILD_VERSION = "build-version"
-    SUB_COMMAND_AVAILABLE_TIMEZONES = "available-timezones"
-    SUB_COMMAND_OS_ENV = "os-env"
-    SUB_COMMAND_JAVA_SYS_PROPERTIES = "java-sys-properties"
-    SUB_COMMAND_CONFIGURATION = "configuration"
-    SUB_COMMAND_INSTRUMENTATION = "instrumentation"
-    SUB_COMMAND_QUEUE_DUMP = "queue-dump"
+    _SUB_COMMAND_STATUS = "status"
+    _SUB_COMMAND_BUILD_VERSION = "build-version"
+    _SUB_COMMAND_AVAILABLE_TIMEZONES = "available-timezones"
+    _SUB_COMMAND_OS_ENV = "os-env"
+    _SUB_COMMAND_JAVA_SYS_PROPERTIES = "java-sys-properties"
+    _SUB_COMMAND_CONFIGURATION = "configuration"
+    _SUB_COMMAND_INSTRUMENTATION = "instrumentation"
+    _SUB_COMMAND_QUEUE_DUMP = "queue-dump"
     
     # v2
-    SUB_COMMAND_METRICS = "metrics"
-    SUB_COMMAND_AVAILABLE_OOZIE_SERVERS = "available-oozie-servers"
-    SUB_COMMAND_LIST_SHARELIB = "list_sharelib"
-    SUB_COMMAND_UPDATE_SHARELIB = "update_sharelib"
+    _SUB_COMMAND_METRICS = "metrics"
+    _SUB_COMMAND_AVAILABLE_OOZIE_SERVERS = "available-oozie-servers"
+    _SUB_COMMAND_LIST_SHARELIB = "list_sharelib"
+    _SUB_COMMAND_UPDATE_SHARELIB = "update_sharelib"
     
     def __init__(self, oozie_url):
         super(Admin, self).__init__(oozie_url, 'admin')
 
     def status(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_STATUS)
+        return self.get_request_v1(self._SUB_COMMAND_STATUS)
         
     def change_system_mode(self, systemmode):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_STATUS, {'systemmode':systemmode})
+        if systemmode not in ["NORMAL", "NOWEBSERVICE", "SAFEMODE"]:
+            raise ArgumentError("systemmode in NORMAL, NOWEBSERVICE, SAFEMODE")
+        
+        url = self._mk_command_url(self._COMMAND_V1, self._SUB_COMMAND_STATUS, {'systemmode':systemmode})
+        
+        return self.request_put(url)
     
     def os_env(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_OS_ENV)
+        return self.get_request_v1(self._SUB_COMMAND_OS_ENV)
     
     def java_sys_properties(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_JAVA_SYS_PROPERTIES)
+        return self.get_request_v1(self._SUB_COMMAND_JAVA_SYS_PROPERTIES)
         
     def configuration(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_CONFIGURATION)
+        return self.get_request_v1(self._SUB_COMMAND_CONFIGURATION)
     
     def build_version(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_BUILD_VERSION)
+        return self.get_request_v1(self._SUB_COMMAND_BUILD_VERSION)
     
     def available_timezones(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_AVAILABLE_TIMEZONES)
+        return self.get_request_v1(self._SUB_COMMAND_AVAILABLE_TIMEZONES)
         
     def queue_dump(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_QUEUE_DUMP)
+        return self.get_request_v1(self._SUB_COMMAND_QUEUE_DUMP)
     
     # v2
     def metrics(self):
-        return self.request_oozie_command_v2(self.SUB_COMMAND_METRICS)
+        return self.get_request_v2(self._SUB_COMMAND_METRICS)
     
     def available_oozie_servers(self):
-        return self.request_oozie_command_v2(self.SUB_COMMAND_AVAILABLE_OOZIE_SERVERS)
+        return self.get_request_v2(self._SUB_COMMAND_AVAILABLE_OOZIE_SERVERS)
     
     def list_sharelib(self, keywords=None):
+        params = None
+        
         if keywords:
             params = {'lib': keywords}
             
-        return self.request_oozie_command_v2(self.SUB_COMMAND_LIST_SHARELIB, params)
+        return self.get_request_v2(self._SUB_COMMAND_LIST_SHARELIB, params)
         
     def update_sharelib(self):
-        return self.request_oozie_command_v2(self.SUB_COMMAND_UPDATE_SHARELIB)
+        return self.get_request_v2(self._SUB_COMMAND_UPDATE_SHARELIB)
     
 class Version(OozieHttpApi):
     
-    SUB_COMMAND_VERSION = "oozie/versions"
+    _SUB_COMMAND_VERSION = "oozie/versions"
     
     def __init__(self, oozie_url):
-        super(Admin, self).__init__(oozie_url, 'version')
+        super(Version, self).__init__(oozie_url, 'version')
 
     def oozie_versions(self):
-        return self.request_oozie_command_v1(self.SUB_COMMAND_VERSION)
+        return self.get_request_v1(self._SUB_COMMAND_VERSION)
     
 class Job(OozieHttpApi):
     # v1
-    SUB_COMMAND_STATUS = "status"
+    _SUB_COMMAND_STATUS = "status"
     
     def __init__(self, oozie_url):
-        super(Admin, self).__init__(oozie_url, 'job')
+        super(Job, self).__init__(oozie_url, 'job')
         
-        self.COMMAND_V1 = "oozie/v1/job"
-        self.COMMAND_V2 = "oozie/v2/job"
+        self._COMMAND_V1 = "oozie/v1/job"
+        self._COMMAND_V2 = "oozie/v2/job"
         
 
     def _request_url_(self, job_id, command_type):
-        request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url=self.OOZIE_URL, command=command_type, job_id=job_id)
+        request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url=self._OOZIE_URL, command=command_type, job_id=job_id)
         return request_url
     
     def _job_show_(self, command_type, job_id, show, params):
@@ -147,18 +171,20 @@ class Job(OozieHttpApi):
         params["show"] = show
         request_url = "{0}?{1}".format(request_url, self.param_encode(params))
         
-        return self.request_oozie_command_v1(request_url, params)
+        return self.get_request_v1(request_url, params)
     
     
     def job_info(self, job_id, params=None):
-        return self._job_show_(self.COMMAND_V1, job_id, params["show"] if "show" in params else "info", params)
+        return self._job_show_(self._COMMAND_V1, job_id, params["show"] if "show" in params else "info", params)
 
     # v2
     def job_status(self, job_id, params):
-        return self._job_show_(self.COMMAND_V2, job_id, "status", params)
+        return self._job_show_(self._COMMAND_V2, job_id, "status", params)
 
     def job_log(self, job_id, params=None):
-        return self._job_show_(self.COMMAND_V2, job_id, params["show"] if "show" in params else "log", params)
+        return self._job_show_(self._COMMAND_V2, job_id, params["show"] if "show" in params else "log", params)
+
+
 
 class Jobs(OozieHttpApi):
     pass

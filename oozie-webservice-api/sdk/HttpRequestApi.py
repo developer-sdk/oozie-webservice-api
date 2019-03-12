@@ -48,17 +48,17 @@ class HttpRequest(object):
         try:
             response = opener.open(request_get)
         except HTTPError as hpe:
-            print("-- HTTPError --")
-            print("  error code: {0}".format(hpe.code))
-            print("     message: {0}".format(hpe.msg))
-            error_html = hpe.read()
-            print("  error html: {0}".format(error_html))
+            self.debug("-- HTTPError --")
+            self.debug("  error code: {0}".format(hpe.code))
+            self.debug("     message: {0}".format(hpe.msg))
+            self.debug("  error html: {0}".format(hpe.read()))
+            self.logger.exception(hpe)
             return 
         
         response_info = response.info()
         response_body = response.read()
         
-        self.debug("response header: {0}".format(response_info.getheader("Content-Type")))
+        self.debug("response header type: {0}".format(response_info.getheader("Content-Type")))
         
         content_type = response.info().getheader("Content-Type")
         
@@ -67,28 +67,22 @@ class HttpRequest(object):
         
         if content_type.startswith("application/json"): 
             json_obj = json.loads(response_body)
-            
             self.debug(json.dumps(json_obj, indent=4, sort_keys=True))
-                
             return json_obj
         
         elif content_type.startswith("application/xml"):
             root = ET.fromstring(response_body)
-            
             self.debug("-- response xml --")
-            ET.dump(root)
-            
+            self.debug(response_body)
             return root
         
         elif content_type.startswith("text/plain"):
             self.debug("-- response txt --")
-            print(response_body)
-                
+            self.debug(response_body)
             return response_body
         
         elif content_type.startswith("image/png"):
             self.debug("-- response image --")
-            
             return response_body
         
         else:
