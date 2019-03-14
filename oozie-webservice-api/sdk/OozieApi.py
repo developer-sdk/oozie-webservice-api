@@ -18,6 +18,8 @@ class OozieWebService(object):
         
         self.admin = Admin(oozie_url)
         self.version = Version(oozie_url)
+        self.job = Job(oozie_url)
+        self.jobs = Jobs(oozie_url)
 
 class OozieHttpApi(HttpRequest):
     '''
@@ -165,26 +167,23 @@ class Job(OozieHttpApi):
         request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url=self._OOZIE_URL, command=command_type, job_id=job_id)
         return request_url
     
-    def _job_show_(self, command_type, job_id, show, params):
-        request_url = self._request_url_(job_id, command_type)
+    def _job_show(self, version, job_id, show, params):
         
+        url = "{oozie_url}/{version}/{job_id}".format(oozie_url=self._OOZIE_URL, version=version, job_id=job_id)
         params["show"] = show
-        request_url = "{0}?{1}".format(request_url, self.param_encode(params))
         
-        return self.get_request_v1(request_url, params)
+        return self.request_get(url, params)
     
-    
-    def job_info(self, job_id, params=None):
-        return self._job_show_(self._COMMAND_V1, job_id, params["show"] if "show" in params else "info", params)
-
-    # v2
-    def job_status(self, job_id, params):
-        return self._job_show_(self._COMMAND_V2, job_id, "status", params)
-
-    def job_log(self, job_id, params=None):
-        return self._job_show_(self._COMMAND_V2, job_id, params["show"] if "show" in params else "log", params)
-
-
+    def job_log(self, job_id, log_type='log', filters={}):
+        
+        command_version = self._COMMAND_V1
+        
+        if log_type in ['errorlog', 'auditlog']:
+            command_version = self._COMMAND_V2
+        
+        return self._job_show(command_version, job_id, log_type, filters)
 
 class Jobs(OozieHttpApi):
-    pass
+    
+    def __init__(self, oozie_url):
+        super(Jobs, self).__init__(oozie_url, 'jobs')

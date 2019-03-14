@@ -29,4 +29,11 @@ ows = OozieApi.OozieWebService("http://127.0.0.1:11000")
 #########################
 # version
 #########################
-ows.version.oozie_versions()
+#ows.version.oozie_versions()
+
+#########################
+# job
+#########################
+#ows.job.job_log("OOZIE-Workflow-ID")
+#ows.job.job_log("OOZIE-Workflow-ID", log_type='errorlog')
+ows.job.job_log("OOZIE-Workflow-ID", log_type='auditlog')
