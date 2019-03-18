@@ -167,10 +167,10 @@ class Job(OozieHttpApi):
         request_url = "{oozie_url}/{command}/{job_id}".format(oozie_url=self._OOZIE_URL, command=command_type, job_id=job_id)
         return request_url
     
-    def _job_show(self, version, job_id, show, params):
+    def _job(self, version, job_id, show_type, params):
         
         url = "{oozie_url}/{version}/{job_id}".format(oozie_url=self._OOZIE_URL, version=version, job_id=job_id)
-        params["show"] = show
+        params["show"] = show_type
         
         return self.request_get(url, params)
     
@@ -181,8 +181,19 @@ class Job(OozieHttpApi):
         if log_type in ['errorlog', 'auditlog']:
             command_version = self._COMMAND_V2
         
-        return self._job_show(command_version, job_id, log_type, filters)
-
+        return self._job(command_version, job_id, log_type, filters)
+    
+    def job_info(self, job_id, filters={}):
+        return self._job(self._COMMAND_V1, job_id, 'info', filters)
+    
+    def job_graph(self, job_id, file_location="./", showkill="true"):
+        response_body = self._job(self._COMMAND_V1, job_id, "graph", { "show_kill": showkill })
+        file_location = file_location + job_id + ".png"
+    
+        with open(file_location,"wb") as output:
+            output.write(response_body) 
+            output.close()
+            
 class Jobs(OozieHttpApi):
     
     def __init__(self, oozie_url):
