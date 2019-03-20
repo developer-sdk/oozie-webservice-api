@@ -194,6 +194,9 @@ class Job(OozieHttpApi):
             output.write(response_body) 
             output.close()
             
+    def job_status(self, job_id, filters={}):
+        return self._job(self._COMMAND_V2, job_id, 'status', filters)
+            
 class Jobs(OozieHttpApi):
     
     def __init__(self, oozie_url):
