@@ -48,16 +48,3 @@ class HttpResponse(object):
         self.body = info.read()
         self.isok = True if not isinstance(info, HTTPError) else False
     
-    def contetType(self):
-        return self.info.getheader(self.__CONTENT__TYPE__)
-    
-
-'''
-if __name__ == "__main__":
-    http = HttpRequest()
-    response = http.request("http://localhost:11000/oozie")
-    
-    print response.contetType()
-    print response.headers.aaa
-    #sprint response.body
-'''
