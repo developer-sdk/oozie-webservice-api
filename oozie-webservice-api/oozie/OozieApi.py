@@ -27,7 +27,7 @@ class OozieHttpApi(HttpRequest):
     _OOZIE_URL = "http://"
     _COMMAND_V1 = "oozie/v1/"
     _COMMAND_V2 = "oozie/v2/"
-
+    
     def __init__(self, oozie_url, command_type):
         super(OozieHttpApi, self).__init__()
         
@@ -35,37 +35,41 @@ class OozieHttpApi(HttpRequest):
         self._COMMAND_V1 = self._COMMAND_V1 + command_type
         self._COMMAND_V2 = self._COMMAND_V2 + command_type
     
-    def get_request(self, command):
-        url = "{oozie_url}/{command}".format(oozie_url=self._OOZIE_URL, command=command)
-        return self.request(url, "GET")
+    def oozie_request(self, req_type, command, version=None, params=None, headers={}, data=None):
         
-    # request v1 oozie service
-    def get_request_v1(self, command, param=None):
-        url = "{oozie_url}/{version}/{command}".format(oozie_url=self._OOZIE_URL, version=self._COMMAND_V1, command=command)
-        return self.request(url, "GET", param)
-    
-    # request v2 oozie service
-    def get_request_v2(self, command, param=None):
-        url = "{oozie_url}/{version}/{command}".format(oozie_url=self._OOZIE_URL, version=self._COMMAND_V2, command=command)
-        return self.request(url, "GET", param)
-    
-    # request v1 oozie service
-    def put_request_v1(self, command, param=None, headers={}, data=None):
-        url = "{oozie_url}/{version}/{command}".format(oozie_url=self._OOZIE_URL, version=self._COMMAND_V1, command=command)
-        return self.request(url, "PUT", param, headers, data)
-    
-    # request v2 oozie service
-    def put_request_v2(self, command, param=None, headers={}, data=None):
-        url = "{oozie_url}/{version}/{command}".format(oozie_url=self._OOZIE_URL, version=self._COMMAND_V2, command=command)
-        return self.request(url, "PUT", param, headers, data)
-    
-    def response_type_check(self, response):
+        url_param = {"oozie_url": self._OOZIE_URL, "command": command }
+        
+        if version:
+            url_param["version"] = version
+            request_url = "%(oozie_url)s/%(version)s/%(command)s" % url_param
+        else:
+            request_url = "%(oozie_url)s/%(command)s" % url_param
+        
+        print(request_url)
+        
+        http_response = self.request(request_url, req_type, params, headers, data)
+        
+        if not http_response.isok:
+            print(http_response.body)
+        
+        return self.json_response(http_response)
+        
+    def json_response(self, response):
         
         if "Content-Type" in response.headers and "application/json" in response.headers["Content-Type"]:
             return json.loads(response.body)
         
         return response
-            
+    
+class Version(OozieHttpApi):
+    
+    _SUB_COMMAND_VERSION = "oozie/versions"
+    
+    def __init__(self, oozie_url):
+        super(Version, self).__init__(oozie_url, 'version')
+
+    def oozie_versions(self):
+        return self.oozie_request("GET", self._SUB_COMMAND_VERSION)
         
 class Admin(OozieHttpApi):
     '''
@@ -91,41 +95,40 @@ class Admin(OozieHttpApi):
     def __init__(self, oozie_url):
         super(Admin, self).__init__(oozie_url, 'admin')
 
-    def status(self):
-        return self.get_request_v1(self._SUB_COMMAND_STATUS)
+    def status(self, system_mode=None):
         
-    def change_system_mode(self, systemmode):
-        if systemmode not in ["NORMAL", "NOWEBSERVICE", "SAFEMODE"]:
-            raise ArgumentError("systemmode in NORMAL, NOWEBSERVICE, SAFEMODE")
+        if not system_mode:
+            return self.oozie_request("GET", self._SUB_COMMAND_STATUS, self._COMMAND_V1)
+        else:
+            if system_mode not in ["NORMAL", "NOWEBSERVICE", "SAFEMODE"]:
+                raise ArgumentError("systemmode in NORMAL, NOWEBSERVICE, SAFEMODE")
         
-        url = self._mk_command_url(self._COMMAND_V1, self._SUB_COMMAND_STATUS, {'systemmode':systemmode})
-        
-        return self.request_put(url)
+            return self.oozie_request("PUT", self._SUB_COMMAND_STATUS, self._COMMAND_V1, params={'systemmode':system_mode})
     
     def os_env(self):
-        return self.get_request_v1(self._SUB_COMMAND_OS_ENV)
+        return self.oozie_request("GET", self._SUB_COMMAND_OS_ENV, self._COMMAND_V1)
     
     def java_sys_properties(self):
-        return self.get_request_v1(self._SUB_COMMAND_JAVA_SYS_PROPERTIES)
+        return self.oozie_request("GET", self._SUB_COMMAND_JAVA_SYS_PROPERTIES, self._COMMAND_V1)
         
     def configuration(self):
-        return self.get_request_v1(self._SUB_COMMAND_CONFIGURATION)
+        return self.oozie_request("GET", self._SUB_COMMAND_CONFIGURATION, self._COMMAND_V1)
     
     def build_version(self):
-        return self.get_request_v1(self._SUB_COMMAND_BUILD_VERSION)
+        return self.oozie_request("GET", self._SUB_COMMAND_BUILD_VERSION, self._COMMAND_V1)
     
     def available_timezones(self):
-        return self.get_request_v1(self._SUB_COMMAND_AVAILABLE_TIMEZONES)
+        return self.oozie_request("GET", self._SUB_COMMAND_AVAILABLE_TIMEZONES, self._COMMAND_V1)
         
     def queue_dump(self):
-        return self.get_request_v1(self._SUB_COMMAND_QUEUE_DUMP)
+        return self.oozie_request("GET", self._SUB_COMMAND_QUEUE_DUMP, self._COMMAND_V1)
     
     # v2
     def metrics(self):
-        return self.get_request_v2(self._SUB_COMMAND_METRICS)
+        return self.oozie_request("GET", self._SUB_COMMAND_METRICS, self._COMMAND_V2)
     
     def available_oozie_servers(self):
-        return self.get_request_v2(self._SUB_COMMAND_AVAILABLE_OOZIE_SERVERS)
+        return self.oozie_request("GET", self._SUB_COMMAND_AVAILABLE_OOZIE_SERVERS, self._COMMAND_V2)
     
     def list_sharelib(self, keywords=None):
         params = None
@@ -138,17 +141,7 @@ class Admin(OozieHttpApi):
     def update_sharelib(self):
         return self.get_request_v2(self._SUB_COMMAND_UPDATE_SHARELIB)
     
-class Version(OozieHttpApi):
-    
-    _SUB_COMMAND_VERSION = "oozie/versions"
-    
-    def __init__(self, oozie_url):
-        super(Version, self).__init__(oozie_url, 'version')
 
-    def oozie_versions(self):
-        return self.response_type_check(self.get_request(self._SUB_COMMAND_VERSION))
-        
-    
 class Job(OozieHttpApi):
     # v1
     _SUB_COMMAND_STATUS = "status"
@@ -182,7 +175,7 @@ class Job(OozieHttpApi):
         response_body = self._request_show(self._COMMAND_V1, job_id, "graph", { "show_kill": showkill })
         file_location = file_location + job_id + ".png"
     
-        with open(file_location,"wb") as output:
+        with open(file_location, "wb") as output:
             output.write(response_body) 
             output.close()
             
@@ -209,5 +202,19 @@ class Jobs(OozieHttpApi):
 if __name__ == "__main__":
     
     oozie = OozieRestApi("http://localhost:11000")
-    response = oozie.version.oozie_versions()
-    print(response)
+    # Version
+    # json_obj = oozie.version.oozie_versions()
+    
+    # Admin
+    # json_obj = oozie.admin.status()
+    # json_obj = oozie.admin.status('NORMAL')
+    #json_obj = oozie.admin.os_env()
+    #json_obj = oozie.admin.java_sys_properties()
+    #json_obj = oozie.admin.configuration()
+    #json_obj = oozie.admin.build_version()
+    #json_obj = oozie.admin.available_timezones()
+    #json_obj = oozie.admin.queue_dump()
+    #json_obj = oozie.admin.metrics()    # metric enable
+    json_obj = oozie.admin.available_oozie_servers()
+    
+    print(json.dumps(json_obj, indent=4, sort_keys=True))
