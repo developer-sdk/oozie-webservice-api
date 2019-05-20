@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from httputil import HttpRequest
-from _ctypes import ArgumentError
-import json
+import json, os
 
-class OozieRestApi(object):
+class OozieWebService(object):
     '''
         Oozie 웹서비스 호출 클래스 
     '''
@@ -19,8 +18,7 @@ class OozieRestApi(object):
             
 class OozieHttpApi(HttpRequest):
     '''
-        Oozie Http Webservice 호출을 위한 슈퍼 클래스 
-        
+        Oozie Http Webservice 호출을 위한 슈퍼 클래스  
         command_type: admin, versions, job, jobs
     '''
 
@@ -45,10 +43,16 @@ class OozieHttpApi(HttpRequest):
         else:
             request_url = "%(oozie_url)s/%(command)s" % url_param
         
+        '''
+        @note: print url 
+        '''
         print(request_url)
         
         http_response = self.request(request_url, req_type, params, headers, data)
         
+        '''
+        @note: print error 
+        '''
         if not http_response.isok:
             print(http_response.body)
         
@@ -101,7 +105,7 @@ class Admin(OozieHttpApi):
             return self.oozie_request("GET", self._SUB_COMMAND_STATUS, self._COMMAND_V1)
         else:
             if system_mode not in ["NORMAL", "NOWEBSERVICE", "SAFEMODE"]:
-                raise ArgumentError("systemmode in NORMAL, NOWEBSERVICE, SAFEMODE")
+                raise ValueError("systemmode in NORMAL, NOWEBSERVICE, SAFEMODE")
         
             return self.oozie_request("PUT", self._SUB_COMMAND_STATUS, self._COMMAND_V1, params={'systemmode':system_mode})
     
@@ -136,51 +140,60 @@ class Admin(OozieHttpApi):
         if keywords:
             params = {'lib': keywords}
             
-        return self.get_request_v2(self._SUB_COMMAND_LIST_SHARELIB, params)
+        return self.oozie_request("GET", self._SUB_COMMAND_LIST_SHARELIB, self._COMMAND_V2, params=params)
         
     def update_sharelib(self):
-        return self.get_request_v2(self._SUB_COMMAND_UPDATE_SHARELIB)
+        return self.oozie_request("GET", self._SUB_COMMAND_UPDATE_SHARELIB, self._COMMAND_V2)
     
 
 class Job(OozieHttpApi):
+    '''
+        Oozie Webservice의 Job API 호출 
+    '''
+    
     # v1
     _SUB_COMMAND_STATUS = "status"
     
     def __init__(self, oozie_url):
         super(Job, self).__init__(oozie_url, 'job')
-        
-        self._COMMAND_V1 = "oozie/v1/job"
-        self._COMMAND_V2 = "oozie/v2/job"
     
-    def _request_show(self, version, job_id, show_type, params):
-        
-        url = "{oozie_url}/{version}/{job_id}".format(oozie_url=self._OOZIE_URL, version=version, job_id=job_id)
+    def __request_show__(self, version, job_id, show_type, params):
         params["show"] = show_type
         
-        return self.request_get(url, params)
+        return self.oozie_request("GET", job_id, version, params)
+    
     
     def job_log(self, job_id, log_type='log', filters={}):
         
+        if log_type not in ["log", "errorlog", "auditlog"]:
+            raise ValueError("log_type in log, errorlog, auditlog")
+            
         command_version = self._COMMAND_V1
         
         if log_type in ['errorlog', 'auditlog']:
             command_version = self._COMMAND_V2
         
-        return self._request_show(command_version, job_id, log_type, filters)
+        return self.__request_show__(command_version, job_id, log_type, filters)
     
     def job_info(self, job_id, filters={}):
-        return self._request_show(self._COMMAND_V1, job_id, 'info', filters)
+        return self.__request_show__(self._COMMAND_V1, job_id, 'info', filters)
     
     def job_graph(self, job_id, file_location="./", showkill="true"):
-        response_body = self._request_show(self._COMMAND_V1, job_id, "graph", { "show_kill": showkill })
+        
         file_location = file_location + job_id + ".png"
-    
+        
+        # check file exist
+        if os.path.exists(file_location):
+            raise Exception("file exist[" + file_location + " ]")
+        
+        response_body = self.__request_show__(self._COMMAND_V1, job_id, "graph", {"show_kill": showkill }).body
+        
         with open(file_location, "wb") as output:
             output.write(response_body) 
             output.close()
             
     def job_status(self, job_id, filters={}):
-        return self._request_show(self._COMMAND_V2, job_id, 'status', filters)
+        return self.__request_show__(self._COMMAND_V2, job_id, 'status', filters)
     
     def managing_job(self, job_id, action_type, xml=""):
         
@@ -201,20 +214,36 @@ class Jobs(OozieHttpApi):
             
 if __name__ == "__main__":
     
-    oozie = OozieRestApi("http://localhost:11000")
-    # Version
-    # json_obj = oozie.version.oozie_versions()
+    oozie = OozieWebService("http://localhost:11000")
     
-    # Admin
-    # json_obj = oozie.admin.status()
-    # json_obj = oozie.admin.status('NORMAL')
-    #json_obj = oozie.admin.os_env()
-    #json_obj = oozie.admin.java_sys_properties()
-    #json_obj = oozie.admin.configuration()
-    #json_obj = oozie.admin.build_version()
-    #json_obj = oozie.admin.available_timezones()
-    #json_obj = oozie.admin.queue_dump()
-    #json_obj = oozie.admin.metrics()    # metric enable
-    json_obj = oozie.admin.available_oozie_servers()
+    # Version - all json return
+    # return_obj = oozie.version.oozie_versions()
     
-    print(json.dumps(json_obj, indent=4, sort_keys=True))
+    # Admin - all json return
+    # return_obj = oozie.admin.status()
+    # return_obj = oozie.admin.status('NORMAL')
+    #return_obj = oozie.admin.os_env()
+    #return_obj = oozie.admin.java_sys_properties()
+    #return_obj = oozie.admin.configuration()
+    #return_obj = oozie.admin.build_version()
+    #return_obj = oozie.admin.available_timezones()
+    #return_obj = oozie.admin.queue_dump()
+    #return_obj = oozie.admin.metrics()    # if metric enable
+    #return_obj = oozie.admin.available_oozie_servers()
+    #return_obj = oozie.admin.list_sharelib()
+    #return_obj = oozie.admin.list_sharelib("pig")
+    #return_obj = oozie.admin.update_sharelib()
+    
+    # Job
+    co_id = "C-ID"
+    wf_id = "W-ID"
+    #return_obj = oozie.job.job_info(wf_id)
+    #return_obj = oozie.job.job_info(co_id)
+    #return_obj = oozie.job.job_log(wf_id)  # txt return
+    #return_obj = oozie.job.job_status(wf_id)
+    return_obj = oozie.job.job_graph(wf_id)
+    
+    if isinstance(return_obj, json):
+        print(json.dumps(return_obj, indent=4, sort_keys=True))
+    else:
+        print(return_obj.body)
