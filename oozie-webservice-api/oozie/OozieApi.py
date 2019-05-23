@@ -43,18 +43,7 @@ class OozieHttpApi(HttpRequest):
         else:
             request_url = "%(oozie_url)s/%(command)s" % url_param
         
-        '''
-        @note: print url 
-        '''
-        print(request_url)
-        
         http_response = self.request(request_url, req_type, params, headers, data)
-        
-        '''
-        @note: print error 
-        '''
-        if not http_response.isok:
-            print(http_response.body)
         
         return self.json_response(http_response)
         
@@ -159,7 +148,6 @@ class Job(OozieHttpApi):
     
     def __request_show__(self, version, job_id, show_type, params):
         params["show"] = show_type
-        
         return self.oozie_request("GET", job_id, version, params)
     
     
@@ -192,19 +180,22 @@ class Job(OozieHttpApi):
             output.write(response_body) 
             output.close()
             
-    def job_status(self, job_id, filters={}):
-        return self.__request_show__(self._COMMAND_V2, job_id, 'status', filters)
+    def job_status(self, job_id):
+        return self.__request_show__(self._COMMAND_V2, job_id, 'status', {})
     
     def managing_job(self, job_id, action_type, xml=""):
         
         if action_type not in ['start', 'suspend', 'resume', 'kill', 'dryrun', 'rerun', 'change', 'ignore']:
             raise Exception("Not valid action type.")
         
-        request_url = "{oozie_url}/{version}/{job_id}".format(oozie_url=self._OOZIE_URL, version=self._COMMAND_V1, job_id=job_id)
         params = {}
         params["action"] = action_type
         
-        return self.request('{0}?{1}'.format(request_url, self.param_encode(params)), "PUT", xml)    
+        headers={}
+        if xml:
+            headers["Content-Type"] = "application/xml;charset=UTF-8"
+        
+        return self.oozie_request("PUT", job_id, self._COMMAND_V1, params, headers=headers, data=xml)
         
 class Jobs(OozieHttpApi):
     
@@ -214,6 +205,13 @@ class Jobs(OozieHttpApi):
             
 if __name__ == "__main__":
     
+    rerun_xml = '''<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+<property><name>user.name</name><value>hadoop</value></property>
+<property><name>oozie.wf.rerun.failnodes</name><value>false</value></property>
+</configuration>
+'''
+    # https://oozie.apache.org/docs/4.2.0/WebServicesAPI.html#Job_Information
     oozie = OozieWebService("http://localhost:11000")
     
     # Version - all json return
@@ -240,10 +238,19 @@ if __name__ == "__main__":
     #return_obj = oozie.job.job_info(wf_id)
     #return_obj = oozie.job.job_info(co_id)
     #return_obj = oozie.job.job_log(wf_id)  # txt return
+    #return_obj = oozie.job.job_log(wf_id, "errorlog")  # txt return
+    #return_obj = oozie.job.job_log(wf_id, "auditlog")  # txt return
     #return_obj = oozie.job.job_status(wf_id)
-    return_obj = oozie.job.job_graph(wf_id)
+    #return_obj = oozie.job.job_graph(wf_id)
+    return_obj = oozie.job.managing_job(wf_id, 'start')
+    #return_obj = oozie.job.managing_job(wf_id, 'rerun', rerun_xml)
     
-    if isinstance(return_obj, json):
+    if isinstance(return_obj, dict):
         print(json.dumps(return_obj, indent=4, sort_keys=True))
     else:
-        print(return_obj.body)
+        if return_obj.isok:
+            print(return_obj.info.url)
+            print(return_obj.body)
+        else:
+            print(return_obj.info.filename)
+            print(return_obj.body)
