@@ -33,12 +33,17 @@ class OozieHttpApi(HttpRequest):
         self._COMMAND_V1 = self._COMMAND_V1 + command_type
         self._COMMAND_V2 = self._COMMAND_V2 + command_type
     
-    def oozie_request(self, req_type, command, version=None, params=None, headers={}, data=None):
+    def oozie_request(self, req_type, command=None, version=None, params=None, headers={}, data=None):
         
-        url_param = {"oozie_url": self._OOZIE_URL, "command": command }
+        url_param = {"oozie_url": self._OOZIE_URL }
         
         if version:
             url_param["version"] = version
+        
+        if command:
+            url_param["command"] = command
+        
+        if version:
             request_url = "%(oozie_url)s/%(version)s/%(command)s" % url_param
         else:
             request_url = "%(oozie_url)s/%(command)s" % url_param
@@ -201,8 +206,14 @@ class Jobs(OozieHttpApi):
         super(Jobs, self).__init__(oozie_url, 'jobs')
         
     def submit_job(self, xml):
-        pass
-        #return self.oozie_request("POST", _SUB_COMMAND_VERSION)
+        headers={}
+        headers["Content-Type"] = "application/xml;charset=UTF-8"
+        
+        #request_url = "http://localhost:11000/oozie/v1/jobs"
+        
+        #http_response = self.request(request_url, "POST", None, headers, xml)
+        #return http_response
+        return self.oozie_request("POST", version=self._COMMAND_V1, headers=headers, data=xml)
     
             
 if __name__ == "__main__":
@@ -215,11 +226,10 @@ if __name__ == "__main__":
 '''
     
     submit_xml = '''<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <property>
-        <name>user.name</name>
-        <value>hadoop</value>
-    </property>
+  <property>
+    <name>runDate</name>
+    <value>20190501</value>
+  </property>
 </configuration>
 '''
     
@@ -228,7 +238,7 @@ if __name__ == "__main__":
     oozie = OozieWebService("http://localhost:11000")
     
     ## Version - all json return
-    return_obj = oozie.version.oozie_versions()
+    #return_obj = oozie.version.oozie_versions()
     
     ## Admin - all json return
     #return_obj = oozie.admin.status()
@@ -247,11 +257,11 @@ if __name__ == "__main__":
     #return_obj = oozie.admin.update_sharelib()
     
     ## Jobs
-    #return_obj = oozie.jobs.submit_job(submit_xml)
+    return_obj = oozie.jobs.submit_job(submit_xml)
     
     ## Job
     #co_id = "C-ID"
-    #wf_id = "W-ID"
+    #f_id = "W-ID"
     #return_obj = oozie.job.job_info(wf_id)
     #return_obj = oozie.job.job_info(co_id)
     #return_obj = oozie.job.job_log(wf_id)  # txt return
