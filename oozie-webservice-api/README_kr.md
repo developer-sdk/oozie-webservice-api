@@ -1,5 +1,7 @@
-# 우지 REST API
-우지 웹서비스 API는 HTTP를 이용하여, REST 형식으로 호출하면 JSON 형식의 데이터를 반환합니다. 모든 응답은 UTF-8로 반환됩니다. 제공하는 서비스 목록은 다음과 같습니다. 
+우지 4.2.0 버전 기준의 [웹서비스 API](https://oozie.apache.org/docs/4.2.0/WebServicesAPI.html)를 파이썬으로 개발하였습니다. 
+
+# API 종류
+우지 웹서비스 API는 HTTP 프로토콜을 이용합니다. GET, PUT 방식을 이용하여 데이터를 전달하면 json 형식으로 응답을 회신합니다.  사용가능한 API 목록은 다음과 같습니다. 
 
 -   /versions
 -   /v1/admin
@@ -10,112 +12,47 @@
 -   /v2/admin
 -   /v2/sla 
 
-# Versions End-Point
-사용 가능한 우지 웹서비스 버전을 반환합니다. 반환값은 현재 0, 1, 2가 있습니다. 
+## End-Point 
+우지 API의 구성은 `/버전/End-Point` 형식으로 사용합니다. 각 엔드 포인트에서 사용가능한 정보는 다음과 같습니다. 
 
-```
-**Request:**
-GET /oozie/versions
+- versions
+	- 사용가능한 API 버전 정보를 반환 
+- admin
+	- OS, Java, 우지 관련 정보를 반환 
+- job, jobs
+	- 잡(번들, 코디네이터, 워크플로우)의 실행
+	- 잡의 상태, 로그 등의 정보 반환
 
-**Response:**
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-.
-[0,1]
-```
+## 목록 
 
-# Admin End-Point
-우지의 시스템 상태 및 설정 정보를 얻는데 사용합니다. 
+### versions
+versions의 요청 타입에는 버전정보가 들어가지 않습니다. 
 
-## System Status 
-시스템 상태를 얻는 방법은 status를 이용합니다. status는 두가지 모드가 있습니다. 하나는 상태를 얻어오는 것이고, 다른 하나는 상태를 변경하는 것입니다. 
+요청타입|url|비고
+-|-|-
+GET|/oozie/versions|버전 정보 확인
 
-### Get을 이용하여 상태 확인 
-상태를 확인할 때는 get방식을 이용하여 처리합니다.  
+### admin
+instrumentation과 metric은 둘 중 하나만 요청 가능합니다. 하나가 지원되면 다른 하나는 지원되지 않습니다 .
 
-```
-Request:
-GET /oozie/v1/admin/status
+요청타입|url|비고
+-|-|-
+GET|/oozie/v1/admin/status|우지 상태 확인 
+GET|/oozie/v1/admin/os-env|os 설정값 확인 
+GET|/oozie/v1/admin/java-sys-properties|자바 설정값 확인 
+GET|/oozie/v1/admin/configuration|우지 설정값 확인 
+GET|/oozie/v1/admin/instrumentation|우지 계측 정보 
+GET|/oozie/v2/admin/metrics|우지 계측 정보
+GET|/oozie/v1/admin/build-version|우지 빌드 버전 정보 
+GET|/oozie/v1/admin/available-timezones|타임존 정보 
+GET|/oozie/v1/admin/queue-dump|우지 큐 정보 
+GET|/oozie/v2/admin/available-oozie-servers|우지 서버 정보. 고가용성 
+GET|/oozie/v2/admin/list_sharelib|쉐어 라이브러리 정보 
+GET|/oozie/v2/admin/list_sharelib?lib=pig*|조회 가능 
+GET|/oozie/v2/admin/update_sharelib|쉐어 라이브러리 갱신 
 
-Response:
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-.
-{"systemMode":NORMAL}
-```
+### job
 
-### Put을 이용하여 상태 변경 
-상태를 변경할 때는 put 방식을 이용하고, 변경하고자 하는 상태를 url에 인코딩하여 전달합니다. NORMAL, NOWEBSERVICE, SAFEMODE 중 한가지 상태로 변경 할 수 있습니다. 
-
-```
-Request:
-PUT /oozie/v1/admin/status?systemmode=SAFEMODE
-
-Response:
-HTTP/1.1 200 OK
-```
-
-## OS Environment
-우지 시스템의 OS환경을 반환합니다. 
-
-```
-Request:
-GET /oozie/v1/admin/os-env
-
-Response:
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-.
-{
-  TERM: "xterm",
-  JAVA_HOME: "/usr/java/latest",
-  XCURSOR_SIZE: "",
-  ...
-}
-```
-
-## Java System Properties
-우지 자바 환경 정보를 반환합니다.  
-
-```
-Request:
-GET /oozie/v1/admin/java-sys-properties
-
-Response:
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-.
-{
-  java.vm.version: "11.0-b15",
-  sun.jnu.encoding: "UTF-8",
-  java.vendor.url: "http://java.sun.com/",
-  java.vm.info: "mixed mode",
-  ...
-}
-```
-
-
-## Oozie Configuration
-우지 설정 정보를 반환합니다. 
-
-
-```
-Request:
-GET /oozie/v1/admin/configuration
-
-Response:
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-.
-{
-  oozie.service.SchedulerService.threads: "5",
-  oozie.service.ActionService.executor.classes: "
-            org.apache.oozie.dag.action.decision.DecisionActionExecutor,
-            org.apache.oozie.dag.action.hadoop.HadoopActionExecutor,
-            org.apache.oozie.dag.action.hadoop.FsActionExecutor
-        ",
-  oozie.service.CallableQueueService.threads.min: "10",
-  oozie.service.DBLiteWorkflowStoreService.oozie.autoinstall: "true",
-  ...
-}
-```
+요청타입|url|비고
+-|-|-
+POST|/oozie/v1/jobs|잡 제출 
