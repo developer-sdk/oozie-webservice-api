@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from httputil import HttpRequest
 import json, os
@@ -24,6 +23,7 @@ class OozieHttpApi(HttpRequest):
 
     _GET_ = "GET"
     _PUT_ = "PUT"
+    _POST_ = "POST"
     _OOZIE_URL = "http://"
     
     def __init__(self, oozie_url, end_point):
@@ -140,6 +140,9 @@ class Job(OozieHttpApi):
     def job_info(self, job_id, filters={}):
         return self.__get_v1_job_request__(job_id, 'info', filters)
     
+    def job_definition(self, job_id, filters={}):
+        return self.__get_v1_job_request__(job_id, 'definition', filters)
+    
     def job_log(self, job_id, log_type='log', filters={}):
         
         if log_type not in ["log", "errorlog", "auditlog"]:
@@ -185,7 +188,6 @@ class Job(OozieHttpApi):
         
         params = {"action" : action_type }
         
-        headers={}
         if xml:
             headers = {"Content-Type" : "application/xml;charset=UTF-8"}
         
@@ -200,14 +202,14 @@ class Jobs(OozieHttpApi):
     def submit_job(self, xml):
         headers = {"Content-Type" : "application/xml;charset=UTF-8"}
         
-        return self.oozie_request("POST", self._V1_END_POINT, headers=headers, data=xml)
+        return self.oozie_request(self._POST_, self._V1_END_POINT, headers=headers, data=xml)
     
             
 if __name__ == "__main__":
     
     rerun_xml = '''<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property><name>user.name</name><value>hadoop</value></property>
+<property><name>user.name</name><value>hadoop</value></property>
 </configuration>
 '''
     
@@ -240,24 +242,28 @@ if __name__ == "__main__":
     #return_obj = oozie.admin.queue_dump()
     #return_obj = oozie.admin.available_oozie_servers()
     #return_obj = oozie.admin.list_sharelib()
-    return_obj = oozie.admin.list_sharelib("pig")
+    #return_obj = oozie.admin.list_sharelib("pig")
     #return_obj = oozie.admin.update_sharelib()
     
     ## Jobs
     #return_obj = oozie.jobs.submit_job(submit_xml)
     
     ## Job
+    #return_obj = oozie.job.managing_job(wf_id, 'start')              # start ok
+    #return_obj = oozie.job.managing_job(wf_id, 'rerun', rerun_xml)    # rerun ok
+    
+    
     #co_id = "C-ID"
-    #wf_id = "W-ID"
+    wf_id = "W-ID"
     #return_obj = oozie.job.job_info(wf_id)
     #return_obj = oozie.job.job_info(co_id)
+    return_obj = oozie.job.job_definition(wf_id)
     #return_obj = oozie.job.job_log(wf_id)  # txt return
     #return_obj = oozie.job.job_log(wf_id, "errorlog")  # txt return
     #return_obj = oozie.job.job_log(wf_id, "auditlog")  # txt return
     #return_obj = oozie.job.job_status(wf_id)
     #return_obj = oozie.job.job_graph(wf_id, file_over_write=True)
-    #return_obj = oozie.job.managing_job(wf_id, 'start')              # start ok
-    #return_obj = oozie.job.managing_job(wf_id, 'rerun', rerun_xml)    # rerun ok
+    
     
     if return_obj.isok:
         if "Content-Type" in return_obj.headers and "application/json" in return_obj.headers["Content-Type"]:
