@@ -51,11 +51,20 @@ GET|/oozie/v2/admin/update_sharelib|쉐어 라이브러리 갱신
 -|-|-
 POST|/oozie/v1/jobs|잡 제출 
 
+* jobs는 mapreduce, pig, hive, sqoop 잡을 지정해서 처리할 수 있습니다. 
+
 # job
 잡의 정보, 로그 확인, 잡의 설정 변경, 잡의 상태 변경을 할 수 있습니다. 
 
 요청타입|url|비고|반환값
 -|-|-|-
 PUT|/oozie/v1/job/[잡-ID]?action=start|잡 실행|json
+PUT /oozie/v1/job/job-3?action=rerun|잡 리런|
+PUT /oozie/v1/job/job-3?action=coord-rerun&type=action&scope=1-2|코디네이터 리런|
+PUT /oozie/v1/job/job-3?action=bundle-rerun&coord-scope=coord-1|번들 리런|
+PUT /oozie/v1/job/job-3?action=change&value=concurrency=100|코디네이터 정보 변경|
+PUT oozie/v2/job/0000000-140414102048137-oozie-puru-C?action=update|코디네이터의 파라미터 정보 갱신|
 GET|/oozie/v1/job/job-3?show=info|잡 정보 확인 |json
 GET|/oozie/v1/job/job-3?show=definition|잡 선언 정보 확인|xml
+
+* rerun은 추가적인 파라미터가 필요함. 워크플로우 리런은 xml 파일이 필요함. 코디네이터 리런은 아이디 기준과 작업 일자 기준이 있음. 번들 리런은 코디네이터 기준과 작업 일자 기준이 있음 
