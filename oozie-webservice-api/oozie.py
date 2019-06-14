@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from httputil import HttpRequest
 import json, os
@@ -34,6 +35,8 @@ class OozieHttpApi(HttpRequest):
         self._END_POINT = "oozie/" + end_point
         self._V1_END_POINT = "oozie/v1/" + end_point
         self._V2_END_POINT = "oozie/v2/" + end_point
+        
+        self._XML_HEADERS = {"Content-Type" : "application/xml;charset=UTF-8"} 
         
     def oozie_request(self, http_request_type, end_point, command=None, params=None, headers={}, data=None):
         
@@ -183,44 +186,114 @@ class Job(OozieHttpApi):
     
     def managing_job(self, job_id, action_type, xml=""):
         
-        if action_type not in ['start', 'suspend', 'resume', 'kill', 'dryrun', 'rerun', 'change', 'ignore']:
+        if action_type not in ['start', 'suspend', 'resume', 'kill', 'dryrun', 'change', 'ignore']:
             raise Exception("Not valid action type.")
         
         params = {"action" : action_type }
-        
+        headers = {}
         if xml:
-            headers = {"Content-Type" : "application/xml;charset=UTF-8"}
+            headers = self._XML_HEADERS
         
         return self.oozie_request(self._PUT_, self._V1_END_POINT, job_id, params, headers, xml)
     
+    ## rerun
+    def rerun_workflow(self, job_id, xml):
+        params = {"action" : 'rerun' }
+        headers = self._XML_HEADERS
+        return self.oozie_request(self._PUT_, self._V1_END_POINT, job_id, params, headers, xml)
+    
+    ## rerun coord action - action=coord-rerun&type=action&scope=1-2&refresh=false&nocleanup=false 
+    def rerun_coordinator_on_action(self, coord_id, scope="", refresh=False, nocleanup=False):
+        params = {"action" : 'coord-rerun', "type":"action", "scope":scope }
+        return self._rerun_(coord_id, params, refresh, nocleanup)
+    
+    ## rerun coord date - action=coord-rerun&type=date2009-02-01T00:10Z::2009-03-01T00:10Z&scope=&refresh=false&nocleanup=false 
+    def rerun_coordinator_on_date(self, coord_id, start_date_time="", end_date_time="", refresh=False, nocleanup=False):
+        params = {"action" : 'coord-rerun', "type":"date", "scope":"{0}::{1}".format(start_date_time, end_date_time) }
+        return self._rerun_(coord_id, params, refresh, nocleanup)
+    
+    # rerun bundloe coord_scope
+    def rerun_bundle_coord_scope(self, bundle_id, coord_scope, refresh=False, nocleanup=False):
+        params = {"action" : 'bundle-rerun', "coord-scope":coord_scope }
+        return self._rerun_(bundle_id, params, refresh, nocleanup)
+    
+    # rerun bundle date
+    def rerun_bundle_on_date(self, bundle_id, start_date_time="", end_date_time="", refresh=False, nocleanup=False):
+        params = {"action" : 'bundle-rerun', "date-scope":"{0}::{1}".format(start_date_time, end_date_time) }
+        return self._rerun_(bundle_id, params, refresh, nocleanup)
+    
+    # common coord, bundle rerun 
+    def _rerun_(self, cb_id, params, refresh, nocleanup):
+        params["refresh"] = "true" if refresh else "false"
+        params["nocleanup"] = "true" if refresh else "false"
+        
+        headers = self._XML_HEADERS
+        
+        return self.oozie_request(self._PUT_, self._V1_END_POINT, cb_id, params, headers)
+    
+    ### change coord
+    def change_coordinator_endtime(self, coord_id, end_time):
+        params = {"action" : 'change', "value":"endtime="+end_time }
+        return self.oozie_request(self._PUT_, self._V1_END_POINT, coord_id, params)
+    
+    def change_coordinator_concurrency(self, coord_id, concurrency):
+        params = {"action" : 'change', "value":"concurrency={0}".format(concurrency) }
+        return self.oozie_request(self._PUT_, self._V1_END_POINT, coord_id, params)
+    
+    def change_coordinator_pausetime(self, coord_id, pausetime):
+        params = {"action" : 'change', "value":"pausetime="+pausetime }
+        return self.oozie_request(self._PUT_, self._V1_END_POINT, coord_id, params)
+    
+    ### update coord
+    def update_coordinator(self, coord_id, xml):
+        params = {"action" : 'update' }
+        headers = self._XML_HEADERS
+        return self.oozie_request(self._PUT_, self._V2_END_POINT, coord_id, params, headers, xml)
+        
+    ### v2
+    def coordinator_allruns(self, coord_id, action_number, filters={}):
+        action_id = coord_id + "@" + action_number
+        return self.__get_v2_job_request__(action_id, 'allruns', filters)
         
 class Jobs(OozieHttpApi):
     
     def __init__(self, oozie_url):
         super(Jobs, self).__init__(oozie_url, 'jobs')
         
-    def submit_job(self, xml):
-        headers = {"Content-Type" : "application/xml;charset=UTF-8"}
+    def submit_job(self, xml, job_type=None):
         
-        return self.oozie_request(self._POST_, self._V1_END_POINT, headers=headers, data=xml)
-    
+        if job_type in ["mapreduce", "pig", "hive", "sqoop"]:
+            params = {"jobtype" : job_type }
+            return self.oozie_request(self._POST_, self._V1_END_POINT, headers=self._XML_HEADERS, params=params, data=xml)
+        elif job_type is None:
+            return self.oozie_request(self._POST_, self._V1_END_POINT, headers=self._XML_HEADERS, data=xml)
+        else:
+            raise ValueError("job_type in none, mapreduce, pig, hive, sqoop")
+        
             
 if __name__ == "__main__":
     
     rerun_xml = '''<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-<property><name>user.name</name><value>hadoop</value></property>
+    <property><name>user.name</name><value>hadoop</value></property>
 </configuration>
 '''
     
     submit_xml = '''<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <property>
-    <name>runDate</name>
-    <value>20190501</value>
-  </property>
+    <property>
+        <name>oozie.proxysubmission</name>
+        <value>true</value>
+    </property>
 </configuration>
 '''
+
+    update_xml = """<configuration>
+    <property>
+        <name>oozie.proxysubmission</name>
+        <value>true</value>
+    </property>
+</configuration>"""
     
     
     # https://oozie.apache.org/docs/4.2.0/WebServicesAPI.html
@@ -246,31 +319,39 @@ if __name__ == "__main__":
     #return_obj = oozie.admin.update_sharelib()
     
     ## Jobs
-    #return_obj = oozie.jobs.submit_job(submit_xml)
+    #return_obj = oozie.jobs.submit_job(submit_xml)                           # start ok
+    #return_obj = oozie.jobs.submit_job(submit_xml, job_type="mapreduce")    # start ok
     
     ## Job
-    #return_obj = oozie.job.managing_job(wf_id, 'start')              # start ok
-    #return_obj = oozie.job.managing_job(wf_id, 'rerun', rerun_xml)    # rerun ok
+    co_id = "C-ID"
+    #wf_id = "W-ID"
     
+    #return_obj = oozie.job.managing_job(wf_id, 'start')                 # start ok
+    #return_obj = oozie.job.managing_rerun_workflow(wf_id, rerun_xml)    # rerun ok
+    #return_obj = oozie.job.rerun_coordinator_on_action(co_id, "1")      # rerun ok
+    #return_obj = oozie.job.rerun_coordinator_on_date(co_id, "2019-05-22T16:00Z", "2019-05-22T16:00Z")    # rerun ok
+    #return_obj = oozie.job.change_coordinator_concurrency(co_id, 2)
+    #return_obj = oozie.job.change_coordinator_endtime(co_id, "2019-06-02T16:00Z")
+    #return_obj = oozie.job.change_coordinator_pausetime(co_id, "2019-06-01T16:00Z")
+    #return_obj = oozie.job.update_coordinator(co_id, update_xml)
+    return_obj = oozie.job.coordinator_allruns(co_id, "1")
     
-    #co_id = "C-ID"
-    wf_id = "W-ID"
     #return_obj = oozie.job.job_info(wf_id)
     #return_obj = oozie.job.job_info(co_id)
-    return_obj = oozie.job.job_definition(wf_id)
+    #return_obj = oozie.job.job_definition(wf_id)
     #return_obj = oozie.job.job_log(wf_id)  # txt return
     #return_obj = oozie.job.job_log(wf_id, "errorlog")  # txt return
     #return_obj = oozie.job.job_log(wf_id, "auditlog")  # txt return
     #return_obj = oozie.job.job_status(wf_id)
     #return_obj = oozie.job.job_graph(wf_id, file_over_write=True)
     
-    
     if return_obj.isok:
+        print(return_obj.info.url)
+        
         if "Content-Type" in return_obj.headers and "application/json" in return_obj.headers["Content-Type"]:
             json_obj = json.loads(return_obj.body)
             print(json.dumps(json_obj, indent=4, sort_keys=True))
         else:
-            print(return_obj.info.url)
             print(return_obj.body)
     else:
         print(return_obj.info.filename)
