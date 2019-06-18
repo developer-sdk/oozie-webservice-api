@@ -1,7 +1,48 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from httputil import HttpRequest
-import json, os
+import urllib, urllib2, os
+from urllib2 import HTTPError
+'''
+@author: hs_seo
+@version: 0.8.0
+'''
+
+class HttpRequest(object):
+    '''
+        HTTP 호출 
+    '''
+    
+    def param_encode(self, params):
+        return urllib.urlencode(params)
+    
+    def request(self, request_url, request_type="GET", params=None, headers={}, data=None):
+        
+        opener = urllib2.build_opener(urllib2.HTTPHandler)
+        
+        if params:
+            request_url = "{0}?{1}".format(request_url, self.param_encode(params))
+        
+        req = urllib2.Request(request_url, data, headers)
+        req.get_method = lambda: request_type
+        
+        try:
+            response = opener.open(req)
+        except HTTPError as hpe:
+            # fail
+            return HttpResponse(hpe)
+        
+        return HttpResponse(response)
+        
+class HttpResponse(object):
+    
+    def __init__(self, info):
+        
+        self.info = info
+        self.headers = info.headers
+        self.code = info.code
+        self.msg = info.msg
+        self.body = info.read()
+        self.isok = True if not isinstance(info, HTTPError) else False
 
 class OozieWebService(object):
     '''
@@ -127,9 +168,39 @@ class Job(OozieHttpApi):
         Oozie Webservice의 Job API 호출 
     '''
     
+    class Filters():
+        
+        def __init__(self):
+            self.offset = 1
+            self.len = 30
+            self.order = "asc"
+            self.status = "SUCCEEDED"
+            self.status_except = False
+            
+        def params(self):
+            params = dict()
+            params["offset"] = self.offset
+            params["len"] = self.len
+            params["order"] = self.order
+            
+            status_filter = "status" + ("=" if not self.status_except else "!=")
+            params["filter"] = status_filter + self.status
+            
+            return params
+        
+    class LogFilters():
+        def __init__(self):
+            self.limit = 3
+            self.log_level = "WARN"
+            
+        def params(self):
+            filters = "limit={0};".format(self.limit)
+            filters += "loglevel={0};".format(self.log_level)
+            return { "logfilter" : filters}
+            
     def __init__(self, oozie_url):
         super(Job, self).__init__(oozie_url, 'job')
-    
+        
     ### private method
     def __get_v1_job_request__(self, job_id, show_type, params={}):
         params["show"] = show_type
@@ -140,13 +211,17 @@ class Job(OozieHttpApi):
         return self.oozie_request(self._GET_, self._V2_END_POINT, job_id, params)
     
     ### v1
-    def job_info(self, job_id, filters={}):
+    def job_info(self, job_id, filters=None):
+        filters = filters.params() if filters else {}
         return self.__get_v1_job_request__(job_id, 'info', filters)
+        
     
-    def job_definition(self, job_id, filters={}):
+    def job_definition(self, job_id, filters=None):
+        filters = filters.params() if filters else {}
         return self.__get_v1_job_request__(job_id, 'definition', filters)
     
-    def job_log(self, job_id, log_type='log', filters={}):
+    def job_log(self, job_id, log_type='log', filters=None):
+        filters = filters.params() if filters else {}
         
         if log_type not in ["log", "errorlog", "auditlog"]:
             raise ValueError("log_type in log, errorlog, auditlog")
@@ -225,7 +300,7 @@ class Job(OozieHttpApi):
     # common coord, bundle rerun 
     def _rerun_(self, cb_id, params, refresh, nocleanup):
         params["refresh"] = "true" if refresh else "false"
-        params["nocleanup"] = "true" if refresh else "false"
+        params["nocleanup"] = "true" if nocleanup else "false"
         
         headers = self._XML_HEADERS
         
@@ -252,11 +327,44 @@ class Job(OozieHttpApi):
         
     ### v2
     def coordinator_allruns(self, coord_id, action_number, filters={}):
+        filters = filters.params() if filters else {}
         action_id = coord_id + "@" + action_number
-        return self.__get_v2_job_request__(action_id, 'allruns', filters)
+        return self.__get_v2_job_request__(action_id, 'allruns', filters)        
         
 class Jobs(OozieHttpApi):
     
+    class Filters():
+        def __init__(self):
+            self.offset = 1
+            self.len = 2
+            self.order = "asc"
+            
+            self.name = None
+            self.user = None
+            self.group = None
+            self.status = None
+            self.startCreatedTime = None
+            self.endCreatedTime = None
+            
+        def params(self):
+            params = dict()
+            params["offset"] = self.offset
+            params["len"] = self.len
+            params["order"] = self.order
+            
+            filters = ""
+            filters += "name={0};".format(self.name) if self.name else ""
+            filters += "user={0};".format(self.user) if self.user else ""
+            filters += "group={0};".format(self.group) if self.group else ""
+            filters += "status={0};".format(self.status) if self.status else ""
+            filters += "startCreatedTime={0};".format(self.startCreatedTime) if self.startCreatedTime else ""
+            filters += "endCreatedTime={0};".format(self.endCreatedTime) if self.endCreatedTime else ""
+        
+            params["filter"] = filters
+            
+            return params
+        
+        
     def __init__(self, oozie_url):
         super(Jobs, self).__init__(oozie_url, 'jobs')
         
@@ -270,91 +378,15 @@ class Jobs(OozieHttpApi):
         else:
             raise ValueError("job_type in none, mapreduce, pig, hive, sqoop")
         
+    def info(self, filters=None):
+        filters = filters.params() if filters else {}
+        return self.oozie_request(self._GET_, self._V1_END_POINT, params=filters)
+    
+    def managing_jobs(self, action, job_type, filters=None):
+        if job_type not in ["wf", "coordinator", "bundle"]:
+            raise ValueError("job_type in wf, coordinator, bundle")
             
-if __name__ == "__main__":
-    
-    rerun_xml = '''<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <property><name>user.name</name><value>hadoop</value></property>
-</configuration>
-'''
-    
-    submit_xml = '''<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <property>
-        <name>oozie.proxysubmission</name>
-        <value>true</value>
-    </property>
-</configuration>
-'''
-
-    update_xml = """<configuration>
-    <property>
-        <name>oozie.proxysubmission</name>
-        <value>true</value>
-    </property>
-</configuration>"""
-    
-    
-    # https://oozie.apache.org/docs/4.2.0/WebServicesAPI.html
-    oozie = OozieWebService("http://localhost:11000")
-    
-    ## Versions - all json return
-    #return_obj = oozie.version.oozie_versions()
-    
-    ## Admin - all json return
-    #return_obj = oozie.admin.status()
-    #return_obj = oozie.admin.status('NORMAL')
-    #return_obj = oozie.admin.os_env()
-    #return_obj = oozie.admin.java_sys_properties()
-    #return_obj = oozie.admin.configuration()
-    #return_obj = oozie.admin.instrumentation()
-    #return_obj = oozie.admin.metrics()    # if metric enable
-    #return_obj = oozie.admin.build_version()
-    #return_obj = oozie.admin.available_timezones()
-    #return_obj = oozie.admin.queue_dump()
-    #return_obj = oozie.admin.available_oozie_servers()
-    #return_obj = oozie.admin.list_sharelib()
-    #return_obj = oozie.admin.list_sharelib("pig")
-    #return_obj = oozie.admin.update_sharelib()
-    
-    ## Jobs
-    #return_obj = oozie.jobs.submit_job(submit_xml)                           # start ok
-    #return_obj = oozie.jobs.submit_job(submit_xml, job_type="mapreduce")    # start ok
-    
-    ## Job
-    co_id = "C-ID"
-    #wf_id = "W-ID"
-    
-    #return_obj = oozie.job.managing_job(wf_id, 'start')                 # start ok
-    #return_obj = oozie.job.managing_rerun_workflow(wf_id, rerun_xml)    # rerun ok
-    #return_obj = oozie.job.rerun_coordinator_on_action(co_id, "1")      # rerun ok
-    #return_obj = oozie.job.rerun_coordinator_on_date(co_id, "2019-05-22T16:00Z", "2019-05-22T16:00Z")    # rerun ok
-    #return_obj = oozie.job.change_coordinator_concurrency(co_id, 2)
-    #return_obj = oozie.job.change_coordinator_endtime(co_id, "2019-06-02T16:00Z")
-    #return_obj = oozie.job.change_coordinator_pausetime(co_id, "2019-06-01T16:00Z")
-    #return_obj = oozie.job.update_coordinator(co_id, update_xml)
-    return_obj = oozie.job.coordinator_allruns(co_id, "1")
-    
-    #return_obj = oozie.job.job_info(wf_id)
-    #return_obj = oozie.job.job_info(co_id)
-    #return_obj = oozie.job.job_definition(wf_id)
-    #return_obj = oozie.job.job_log(wf_id)  # txt return
-    #return_obj = oozie.job.job_log(wf_id, "errorlog")  # txt return
-    #return_obj = oozie.job.job_log(wf_id, "auditlog")  # txt return
-    #return_obj = oozie.job.job_status(wf_id)
-    #return_obj = oozie.job.job_graph(wf_id, file_over_write=True)
-    
-    if return_obj.isok:
-        print(return_obj.info.url)
-        
-        if "Content-Type" in return_obj.headers and "application/json" in return_obj.headers["Content-Type"]:
-            json_obj = json.loads(return_obj.body)
-            print(json.dumps(json_obj, indent=4, sort_keys=True))
-        else:
-            print(return_obj.body)
-    else:
-        print(return_obj.info.filename)
-        print(return_obj.info.headers['oozie-error-code'])
-        print(return_obj.info.headers['oozie-error-message'])
-        print(return_obj.body)
+        filters = filters.params() if filters else {}
+        filters["action"] = action
+        filters["jobtype"] = job_type
+        return self.oozie_request(self._PUT_, self._V1_END_POINT, params=filters)
