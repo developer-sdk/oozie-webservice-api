@@ -3,9 +3,9 @@
 import sys, os
 
 if sys.version_info[0] == 3:
-    from hadoop.httputil3 import HttpRequest
+    from httputil3 import HttpRequest
 else:
-    from hadoop.httputil2 import HttpRequest
+    from httputil2 import HttpRequest
     
 '''
 @author: hs_seo
