@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 import urllib, urllib2
 from urllib2 import HTTPError
-'''
-@author: whitebeard-k
-'''
 
 class HttpRequest(object):
     '''

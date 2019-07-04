@@ -1,3 +1,9 @@
+__author__ = "hs_seo"
+__version__ = "1.1.0"
+__license__ = "MIT"
+
+__all__ = ['OozieWebService']
+
 from .oozie import Admin, Versions, Job, Jobs
 
 class OozieWebService(object):

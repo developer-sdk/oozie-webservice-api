@@ -6,13 +6,6 @@ if sys.version_info[0] == 3:
     from httputil3 import HttpRequest
 else:
     from httputil2 import HttpRequest
-    
-'''
-@author: hs_seo
-@version: 0.8.0
-'''
-
-
             
 class OozieHttpApi(HttpRequest):
     '''
