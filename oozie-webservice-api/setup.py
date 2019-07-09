@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name             = 'oozie-webservice-api',
-    version          = '1.0.1',
+    version          = '1.1.0',
     description      = 'Python wrapper for Oozie Webservice REST API',
     long_description = open('README.rst').read(),
     license          = 'MIT',
