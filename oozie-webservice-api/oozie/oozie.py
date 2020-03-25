@@ -35,6 +35,9 @@ class OozieHttpApi(HttpRequest):
         
         if command:
             request_url = request_url + "/" + command
+
+        if data is not None:
+            data = data.encode('utf-8')
         
         http_response = self.request(request_url, http_request_type, params, headers, data)
         
