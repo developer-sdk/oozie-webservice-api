@@ -72,7 +72,8 @@ if __name__ == "__main__":
     return_obj = oozie.jobs.submit_job(submit_xml)                           # start ok
     return_obj = oozie.jobs.submit_job(submit_xml, job_type="mapreduce")    # start ok
     return_obj = oozie.jobs.info()
-    return_obj = oozie.jobs.info(filters)
+    return_obj = oozie.jobs.info(filters=filters)
+    return_obj = oozie.jobs.info(job_type="coordinator", filters=filters)
     return_obj = oozie.jobs.managing_jobs("kill", "coordinator", filters)      
     
     ## Job

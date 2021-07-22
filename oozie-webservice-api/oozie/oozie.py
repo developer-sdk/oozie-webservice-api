@@ -328,8 +328,13 @@ class Jobs(OozieHttpApi):
         else:
             raise ValueError("job_type in none, mapreduce, pig, hive, sqoop")
         
-    def info(self, filters=None):
+    def info(self, job_type=None, filters=None):
+        if job_type not in ["wf", "coordinator", "bundle"]:
+            raise ValueError("job_type in wf, coordinator, bundle")
+        
         filters = filters.params() if filters else {}
+        filters["jobtype"] = job_type
+        
         return self.oozie_request(self._GET_, self._V1_END_POINT, params=filters)
     
     def managing_jobs(self, action, job_type, filters=None):
